@@ -1,0 +1,5 @@
+- Decide on what idea to pursue
+- Get feedback from Brian
+- Get green lit
+- Figure out folder structure
+- Decide on code style
