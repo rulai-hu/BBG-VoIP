@@ -9,3 +9,4 @@ Add '✔' symbol next to the item if you endorse the idea. For example:
 - Facial recognition / voice recognition system
 - Audio manipulation
 - LED light strip controller
+- Hand gesture recognition and control
