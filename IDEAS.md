@@ -10,3 +10,4 @@ Add '✔' symbol next to the item if you endorse the idea. For example:
 - Audio manipulation
 - LED light strip controller
 - Hand gesture recognition and control
+- Mapping movement to LED light matrix
