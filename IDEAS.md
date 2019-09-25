@@ -10,6 +10,7 @@ Add '✔' symbol next to the item if you endorse the idea. For example:
 - Audio manipulation
 - LED light strip controller
 - Hand gesture recognition and control
+- Kinect applications
 - Mapping movement to LED light matrix
 - Object classification/location eg. 'find Waldo'
 - Web server eg. an IoT alarm clock
