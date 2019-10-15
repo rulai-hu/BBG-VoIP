@@ -1,8 +1,10 @@
 # Header files
-HEADERS = 
+HEADERS = \
+	include/socket.h
 
 # Object files
 OBJECTS = \
+	socket.o \
 	main.o
 
 # Compiler
