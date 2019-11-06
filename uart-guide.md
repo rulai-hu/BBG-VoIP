@@ -1,4 +1,4 @@
-# Zen Cape Audio Guide – Kernel 4.9+
+# Zen Cape UART Guide – Kernel 4.9+
 by Jeffrey Leung, Rulai Hu, Bryce Haley, Paymon Jalali
 
 ___
