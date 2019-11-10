@@ -48,3 +48,38 @@ To edit the Fritzing file, download [Fritzing](https://fritzing.org/download/).
 Open Fritzing, select **File**, and choose **Open**. Select the library `schematic/AdaFruit.fzbz` to load the BeagleBone part.
 
 Select **File** and choose **Open** to load the schematic.
+
+## Installing PortAudio on BBG
+
+This section is still a work in progress.
+
+### Prerequisites
+* ALSA must be installed and configured on the target.
+  * Then overwrite the ALSA config: `cp alsa.conf /usr/share/alsa/alsa.conf`
+* The target must have internet access for the rest to work.
+
+If you haven't installed libasound2-dev on the target:
+* `apt-get install libasound2-dev`
+
+Download, make and configure:
+* `cd /mnt/remote/`
+* `wget pa_stable_v190600_20161030.tgz`
+* `tar xvzf pa_stable_v190600_20161030.tgz`
+* `./configure && make`
+
+**Important**. Ensure that PortAudio is correctly configured by checking the configuration summary. You should see something like this (the important line has been bolded):
+
+```
+Configuration summary:
+
+  Target ...................... armv7l-unknown-linux-gnueabihf
+  C++ bindings ................ no
+  Debug output ................ no
+
+  **ALSA ........................ yes**
+  ASIHPI ...................... no
+
+  OSS ......................... yes
+  JACK ........................ no
+
+```
