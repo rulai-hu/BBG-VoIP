@@ -49,25 +49,25 @@ Open Fritzing, select **File**, and choose **Open**. Select the library `schemat
 
 Select **File** and choose **Open** to load the schematic.
 
-## Installing PortAudio on BBG
+## Installing PortAudio on the BBG
 
-This section is still a work in progress.
+This section is a work in progress.
 
 ### Prerequisites
 * ALSA must be installed and configured on the target.
-  * Then overwrite the ALSA config: `cp alsa.conf /usr/share/alsa/alsa.conf`
+  * Then overwrite the ALSA config with the one provided in our repo: `cp alsa.conf /usr/share/alsa/alsa.conf`
 * The target must have internet access for the rest to work.
 
 If you haven't installed libasound2-dev on the target:
 * `apt-get install libasound2-dev`
 
-Download, make and configure:
+Download, make and configure PortAudio:
 * `cd /mnt/remote/`
-* `wget pa_stable_v190600_20161030.tgz`
+* `wget http://portaudio.com/archives/pa_stable_v190600_20161030.tgz`
 * `tar xvzf pa_stable_v190600_20161030.tgz`
 * `./configure && make`
 
-**Important**. Ensure that PortAudio is correctly configured by checking the configuration summary. You should see something like this (the important line has been bolded):
+**Important**. Ensure that PortAudio is correctly configured by checking the configuration summary. You should see something like this:
 
 ```
 Configuration summary:
@@ -76,10 +76,18 @@ Configuration summary:
   C++ bindings ................ no
   Debug output ................ no
 
-  **ALSA ........................ yes**
+  ALSA ........................ yes
   ASIHPI ...................... no
 
   OSS ......................... yes
   JACK ........................ no
-
 ```
+
+The important part is that ALSA is **yes**. Otherwise, libasound2-dev has not been correctly installed on the target.
+
+### Troubleshooting
+
+* Segfaults, or unable to open stream
+  * Run `make list_devices` and then run the `list_devices` program on the target. If you don't see a list of devices (more than zero) then ALSA probably isn't set up correctly.
+* I'm getting a whole bunch of runtime errors such as `ALSA lib pcm.c:2495:(snd_pcm_open_noupdate) Unknown PCM surround71`.
+  * Make sure you overwrote the default alsa.conf with the one provided. Then the errors will go away.
