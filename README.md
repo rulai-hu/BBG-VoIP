@@ -56,12 +56,12 @@ This section is a work in progress.
 ### Prerequisites
 * ALSA must be installed and configured on the target.
   * Then overwrite the ALSA config with the one provided in our repo: `cp alsa.conf /usr/share/alsa/alsa.conf`
-* The target must have internet access for the rest to work.
+* The target must have internet access enabled.
 
 If you haven't installed libasound2-dev on the target:
 * `apt-get install libasound2-dev`
 
-Download, make and configure PortAudio:
+Download, make and configure PortAudio **on the target**:
 * `cd /mnt/remote/`
 * `wget http://portaudio.com/archives/pa_stable_v190600_20161030.tgz`
 * `tar xvzf pa_stable_v190600_20161030.tgz`
