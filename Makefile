@@ -14,7 +14,7 @@ OBJECTS = \
 COMPILER = arm-linux-gnueabihf-gcc
 
 # GCC compilation flags
-GCCFLAGS = -c -g -pthread -std=c99 -D _POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -Wmissing-declarations
+GCCFLAGS = -c -g -I$(CURDIR) -pthread -std=c99 -D _POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -Wmissing-declarations
 
 GCCLINKERFLAGS = -pthread
 
@@ -45,12 +45,16 @@ all: $(OBJECTS)
 	cp $(OUTPUT) $(OUTPUT_DIR)
 	@echo "Program generated at: $(OUTPUT_DIR)$(OUTPUT)"
 
+pa_test:
+	$(COMPILER) src/main_pa.c libportaudio.a -I$(CURDIR) -pthread -std=c99 -D _POSIX_C_SOURCE=200809L -o pa_test $(LFLAGS)
+	cp pa_test $(OUTPUT_DIR)
+
 ringbuffer_test:
-	$(COMPILER) src/main_ringbuffer.c src/ringbuffer.c -std=c99 -D _POSIX_C_SOURCE=200809L -o ringbuffer
+	$(COMPILER) src/main_ringbuffer.c src/ringbuffer.c -I$(CURDIR) -std=c99 -D _POSIX_C_SOURCE=200809L -o ringbuffer
 	cp ringbuffer $(OUTPUT_DIR)
 
 device_info:
-	$(COMPILER) src/device_info.c libportaudio.a -pthread -std=c99 -D _POSIX_C_SOURCE=200809L -o device_info $(LFLAGS)
+	$(COMPILER) src/device_info.c libportaudio.a -pthread -I$(CURDIR) -std=c99 -D _POSIX_C_SOURCE=200809L -o device_info $(LFLAGS)
 	cp device_info $(OUTPUT_DIR)
 
 # $ make memchk
