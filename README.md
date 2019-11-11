@@ -89,6 +89,6 @@ The important part is that ALSA is **yes**. Otherwise, libasound2-dev has not be
 
 * Segfaults, or unable to open stream errors
   * Make sure the correct device index is being targeted. For the audio jacks, it's **0**. For USB headphones, it's **1**.
-  * `make list_devices` and then run the `list_devices` program on the target. If you don't see a list of devices (more than zero) then ALSA isn't set up correctly.
+  * `make device_info` and then run the `device_info` program on the target. If you don't see a list of devices (more than zero) then ALSA isn't set up correctly.
 * Getting a whole bunch of runtime errors such as `ALSA lib pcm.c:2495:(snd_pcm_open_noupdate) Unknown PCM surround71`.
   * Make sure the default alsa.conf is overwritten with the one provided and the errors will go away.
