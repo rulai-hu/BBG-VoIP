@@ -1,11 +1,14 @@
 # Header files
 HEADERS = \
-	include/socket.h
+	include/socket.h \
+	include/ringbuffer.h
 
 # Object files
 OBJECTS = \
 	socket.o \
-	main.o
+	main.o \
+	ringbuffer.o \
+	libportaudio.a
 
 # Compiler
 COMPILER = arm-linux-gnueabihf-gcc
@@ -18,6 +21,8 @@ GCCLINKERFLAGS = -pthread
 # Output filename
 OUTPUT = tincanphone
 OUTPUT_DIR = $(HOME)/cmpt433/public/myApps/
+
+LFLAGS = -lm -L$(HOME)/cmpt433/public/asound_lib_BBB -lasound
 
 #####
 ###
@@ -36,9 +41,13 @@ OUTPUT_DIR = $(HOME)/cmpt433/public/myApps/
 
 # $ make all
 all: $(OBJECTS)
-	$(COMPILER) $(OBJECTS) $(GCCLINKERFLAGS) -o $(OUTPUT)
+	$(COMPILER) $(OBJECTS) $(GCCLINKERFLAGS) -o $(OUTPUT) $(LFLAGS)
 	cp $(OUTPUT) $(OUTPUT_DIR)
 	@echo "Program generated at: $(OUTPUT_DIR)$(OUTPUT)"
+
+device_info:
+	$(COMPILER) src/device_info.c libportaudio.a -pthread -std=c99 -D _POSIX_C_SOURCE=200809L -o device_info $(LFLAGS)
+	cp device_info $(OUTPUT_DIR)
 
 # $ make memchk
 memchk: $(OBJECTS)
