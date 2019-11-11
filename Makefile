@@ -45,6 +45,10 @@ all: $(OBJECTS)
 	cp $(OUTPUT) $(OUTPUT_DIR)
 	@echo "Program generated at: $(OUTPUT_DIR)$(OUTPUT)"
 
+ringbuffer_test:
+	$(COMPILER) src/main_ringbuffer.c src/ringbuffer.c -std=c99 -D _POSIX_C_SOURCE=200809L -o ringbuffer
+	cp ringbuffer $(OUTPUT_DIR)
+
 device_info:
 	$(COMPILER) src/device_info.c libportaudio.a -pthread -std=c99 -D _POSIX_C_SOURCE=200809L -o device_info $(LFLAGS)
 	cp device_info $(OUTPUT_DIR)
