@@ -248,7 +248,6 @@ static void* flushSendBuffer(void* ptr) {
     while (1) {
         sendBuffer = lfqueue_single_deq_must(sendBufferQueue);
 
-        // If sendBuffer is NULL this means the callback drained the sendBufferPool.
         // In this edge case send silence.
         if (sendBuffer == NULL) {
             fwrite(totalSilence, sizeof(Sample), FRAMES_PER_BUFFER, fp);
