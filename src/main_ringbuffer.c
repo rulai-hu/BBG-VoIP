@@ -1,7 +1,8 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
-#include "../include/ringbuffer.h"
+#include <stdio.h>
+
+#include "include/ringbuffer.h"
 
 #define MAX_ELEMENTS 3
 #define ELEMENT_SIZE 4 // size of int32

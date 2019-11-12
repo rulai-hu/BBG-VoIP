@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "../include/ringbuffer.h"
+#include "include/ringbuffer.h"
 
 static char* getBufferLoc(RingBuffer*, int);
 
