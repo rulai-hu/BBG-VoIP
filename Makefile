@@ -53,6 +53,10 @@ blocking_audio:
 	$(COMPILER) src/main_blocking_audio.c src/lfqueue.c src/pink.c libportaudio.a -I$(CURDIR) -g -std=c99 -D _POSIX_C_SOURCE=200809L -o blocking_audio_test $(LFLAGS)
 	mv blocking_audio_test $(OUTPUT_DIR)
 
+nonblocking_audio:
+	$(COMPILER) src/main_nonblocking_audio.c src/lfqueue.c src/pink.c libportaudio.a -I$(CURDIR) -g -std=c99 -D _POSIX_C_SOURCE=200809L -o nonblocking_audio_test $(LFLAGS)
+	mv nonblocking_audio_test $(OUTPUT_DIR)
+
 lfqueue_test:
 	$(COMPILER) src/main_lfqueue.c src/lfqueue.c -I$(CURDIR) -Wall -g -std=c99 -D _POSIX_C_SOURCE=200809L -Werror -o lftest -lpthread -lm
 	mv lftest $(OUTPUT_DIR)
