@@ -54,7 +54,7 @@ blocking_audio:
 	mv blocking_audio_test $(OUTPUT_DIR)
 
 nonblocking_audio:
-	$(COMPILER) src/main_nonblocking_audio.c src/lfqueue.c src/pink.c libportaudio.a -I$(CURDIR) -g -std=c99 -D _POSIX_C_SOURCE=200809L -o nonblocking_audio_test $(LFLAGS)
+	$(COMPILER) src/main_nonblocking_audio.c src/lfqueue.c src/pink.c src/lfringbuffer.c libportaudio.a -I$(CURDIR) -g -std=c99 -D _POSIX_C_SOURCE=200809L -o nonblocking_audio_test $(LFLAGS)
 	mv nonblocking_audio_test $(OUTPUT_DIR)
 
 lfqueue_test:
@@ -68,6 +68,10 @@ pa_test:
 ringbuffer_test:
 	$(COMPILER) src/main_ringbuffer.c src/ringbuffer.c -I$(CURDIR) -std=c99 -D _POSIX_C_SOURCE=200809L -o ringbuffer
 	cp ringbuffer $(OUTPUT_DIR)
+
+lfringbuffer:
+	$(COMPILER) src/main_lfringbuffer.c src/lfringbuffer.c -I$(CURDIR) -g -std=c99 -D _POSIX_C_SOURCE=200809L -o lfringbuffer $(LFLAGS)
+	mv lfringbuffer $(OUTPUT_DIR)
 
 device_info:
 	$(COMPILER) src/device_info.c libportaudio.a -pthread -I$(CURDIR) -std=c99 -D _POSIX_C_SOURCE=200809L -o device_info $(LFLAGS)
