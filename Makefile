@@ -1,7 +1,11 @@
 # Header files
 HEADERS = \
 	include/socket.h \
-	include/ringbuffer.h
+	include/ringbuffer.h \
+	include/lfqueue.h \
+	include/pink.h \
+	include/portaudio.h \
+	include/pa_linux_alsa.h
 
 # Object files
 OBJECTS = \
@@ -22,7 +26,7 @@ GCCLINKERFLAGS = -pthread
 OUTPUT = tincanphone
 OUTPUT_DIR = $(HOME)/cmpt433/public/myApps/
 
-LFLAGS = -lm -L$(HOME)/cmpt433/public/asound_lib_BBB -lasound
+LFLAGS = -lm -L$(HOME)/cmpt433/public/asound_lib_BBB -lasound -lpthread
 
 #####
 ###
@@ -44,6 +48,14 @@ all: $(OBJECTS)
 	$(COMPILER) $(OBJECTS) $(GCCLINKERFLAGS) -o $(OUTPUT) $(LFLAGS)
 	cp $(OUTPUT) $(OUTPUT_DIR)
 	@echo "Program generated at: $(OUTPUT_DIR)$(OUTPUT)"
+
+blocking_audio:
+	$(COMPILER) src/main_blocking_audio.c src/lfqueue.c src/pink.c libportaudio.a -I$(CURDIR) -g -std=c99 -D _POSIX_C_SOURCE=200809L -o blocking_audio_test $(LFLAGS)
+	mv blocking_audio_test $(OUTPUT_DIR)
+
+lfqueue_test:
+	$(COMPILER) src/main_lfqueue.c src/lfqueue.c -I$(CURDIR) -Wall -g -std=c99 -D _POSIX_C_SOURCE=200809L -Werror -o lftest -lpthread -lm
+	mv lftest $(OUTPUT_DIR)
 
 pa_test:
 	$(COMPILER) src/main_pa.c libportaudio.a -I$(CURDIR) -pthread -std=c99 -D _POSIX_C_SOURCE=200809L -o pa_test $(LFLAGS)
