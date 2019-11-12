@@ -66,25 +66,18 @@ static int uniformRand(int);
 static void* countThings(void* ptr);
 static void* fillRecvBuffer(void* ptr);
 static void* flushSendBuffer(void* ptr);
-static int rwAudio(const void*, void*, unsigned long, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void*);
-static int testAudio(const void*, void*, unsigned long, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void*);
 
 PaStream*          audioStream;
 PaStreamParameters inputParams, outputParams;
 
 static pthread_t recvThread, sendThread, counterThread;
-static pthread_mutex_t recvMutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t sendMutex = PTHREAD_MUTEX_INITIALIZER;
 
-Sample* totalSilence;
-char* recvBuffer;
-char* sendBuffer;
+const Sample* totalSilence;
 
 lfqueue_t* sendBufferQueue;
 lfqueue_t* recvBufferQueue;
 
 lfqueue_t* sendBufferPool;
-lfqueue_t* recvBufferPool;
 
 PinkNoise noise;
 
@@ -94,36 +87,26 @@ PinkNoise noise;
 int main(void) {
     sendBufferQueue = malloc(sizeof(lfqueue_t));
     recvBufferQueue = malloc(sizeof(lfqueue_t));
+
     sendBufferPool = malloc(sizeof(lfqueue_t));
-    recvBufferPool = malloc(sizeof(lfqueue_t));
 
     lfqueue_init(sendBufferQueue);
     lfqueue_init(recvBufferQueue);
 
     lfqueue_init(sendBufferPool);
-    lfqueue_init(recvBufferPool);
 
     InitializePinkNoise(&noise, 12);
-    // lfqueue_init(suicideBooth);
-    // for (int i=0; i<20; i++ )
-    // {
-    //     float pink = GeneratePinkNoise(&noise);
-    //     printf("Pink = %d\n", (Sample)(pink * 36000));
-    // }
 
     size_t bytesPerBuffer = FRAMES_PER_BUFFER * sizeof(Sample);
+
     // Populate the buffer pools with buffers.
     for (int i = 0; i < BUFFER_POOL_SIZE; i++) {
-        // printf("Adding buffer to pool\n");
         Sample* sendBuf = malloc(bytesPerBuffer);
         lfqueue_enq(sendBufferPool, sendBuf);
-
-        Sample* recvBuf = malloc(bytesPerBuffer);
-        lfqueue_enq(recvBufferPool, recvBuf);
     }
 
     totalSilence = malloc(bytesPerBuffer);
-    memset(totalSilence, SILENCE, bytesPerBuffer);
+    memset((void*) totalSilence, SILENCE, bytesPerBuffer);
 
     PaError result = paNoError;
     const PaDeviceInfo* deviceInfo;
@@ -150,14 +133,10 @@ int main(void) {
     outputParams.suggestedLatency = deviceInfo->defaultHighOutputLatency;
     outputParams.hostApiSpecificStreamInfo = NULL;
 
-    // result = Pa_OpenStream(&audioStream, &inputParams, &outputParams, SAMPLE_RATE, FRAMES_PER_BUFFER, paClipOff, rwAudio, NULL);
-    // result = Pa_OpenStream(&audioStream, NULL, &outputParams, SAMPLE_RATE, FRAMES_PER_BUFFER, paClipOff, testAudio, NULL);
     result = Pa_OpenStream(&audioStream, &inputParams, &outputParams, SAMPLE_RATE, FRAMES_PER_BUFFER, paClipOff, NULL, NULL);
     if (result != paNoError) {
         goto done;
     }
-
-    // PaAlsa_EnableRealtimeScheduling(&audioStream, true);
 
     result = Pa_StartStream(audioStream);
 
@@ -168,49 +147,36 @@ int main(void) {
     if (result != paNoError)
         goto done;
 
-    // while ((result = Pa_IsStreamActive(audioStream)) == 1) {
-    //     printf("SendBufferQueueSize=%u\n", lfqueue_size(sendBufferQueue));
-    //     printf("RecvBufferQueueSize=%u\n", lfqueue_size(recvBufferQueue));
-    //     Pa_Sleep(100);
-    // }
-
-    if (result != paNoError) {
-        goto done;
-    }
-
     _Bool callFinished = false;
-    // sendBuffer = malloc(bytesPerBuffer);
-    // recvBuffer = malloc(bytesPerBuffer);
+
+    Sample* recvBuffer;
+    Sample* sendBuffer;
 
     while (!callFinished) {
-        // pthread_mutex_lock(&recvMutex);
         recvBuffer = lfqueue_single_deq(recvBufferQueue);
+
         if (recvBuffer == NULL) {
             printf("recvBuffer=NULL, writing totalSilence\n");
             Pa_WriteStream(audioStream, totalSilence, FRAMES_PER_BUFFER);
             continue;
         }
-        // printf("%x\n", recvBuffer);
+
         result = Pa_WriteStream(audioStream, recvBuffer, FRAMES_PER_BUFFER);
         free(recvBuffer);
-        // pthread_mutex_unlock(&recvMutex);
 
         if (result != paNoError) {
             Pa_WriteStream(audioStream, totalSilence, FRAMES_PER_BUFFER);
-            // printf("uh oh: %d\n", result);
-            // goto done;
         }
-
-        // pthread_mutex_lock(&sendMutex);
 
         // Take a free spot from the pool cuz malloc is too slow
         sendBuffer = lfqueue_single_deq(sendBufferPool);
         result = Pa_ReadStream(audioStream, sendBuffer, FRAMES_PER_BUFFER);
-        lfqueue_enq(sendBufferQueue, sendBuffer);
-        // pthread_mutex_unlock(&sendMutex);
 
-        // if (result != paNoError)
-        //     goto done;
+        if (result != paNoError) {
+            lfqueue_enq(sendBufferQueue, NULL);
+        } else {
+            lfqueue_enq(sendBufferQueue, sendBuffer);
+        }
     }
 
     result = Pa_CloseStream(audioStream);
@@ -224,69 +190,11 @@ done:
     return result;
 }
 
-
-
-static int testAudio(const void* inputBuffer, void* outputBuffer, unsigned long frameCount,
-        const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags, void* userData) {
-
-    Sample* writePtr = (Sample*) outputBuffer;
-    for (int i = 0; i < frameCount; i++) {
-        *writePtr++ = (Sample) (GeneratePinkNoise(&noise) * 32600.0);;
-    }
-
-    return paContinue;
-}
-
-/**
- * Synchronized input/output to audio device.
- */
-static int rwAudio(const void* inputBuffer, void* outputBuffer, unsigned long frameCount,
-        const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags, void* userData) {
-
-    UNUSED(userData);
-
-    int i;
-    Sample* recvBuffer = lfqueue_single_deq(recvBufferQueue);
-    Sample* sendBuffer = lfqueue_single_deq(sendBufferPool);
-
-    // Write audio data to output buffer to be played.
-    // Doesn't contain anything meaningful right now.
-    Sample* writePtr = (Sample*) outputBuffer;
-
-    // Contains audio-in data
-    Sample* readPtr = (Sample*) inputBuffer;
-
-    if (recvBuffer == NULL) {
-        for (i = 0; i < frameCount; i++) {
-            *writePtr++ = SILENCE;
-        }
-    } else {
-        for (i = 0; i < frameCount; i++) {
-            *writePtr++ = *recvBuffer++;
-        }
-
-        // Place the consumed buffer back into the pool to be reused.
-        lfqueue_enq(recvBufferPool, recvBuffer);
-    }
-
-    if (sendBuffer != NULL) {
-        for (i = 0; i < frameCount; i++) {
-            *sendBuffer++ = *readPtr++;
-        }
-    }
-
-    // If sendBuffer = NULL, this means the pool is exhausted. This is probably
-    // because the flushSendBuffer thread is not processing queued audio fast enough.
-    // In this case, we just send SILENCE.
-    // lfqueue_enq(sendBufferQueue, sendBuffer);
-
-    return paContinue;
-}
-
 static void* countThings(void* ptr) {
     while (1) {
-        printf("RecvQueue=%u, SendQueue=%u, RecvPool=%u, SendPool=%u\n", lfqueue_size(recvBufferQueue), lfqueue_size(sendBufferQueue),
-            lfqueue_size(recvBufferPool), lfqueue_size(sendBufferPool));
+        printf("RecvQueue=%u, SendQueue=%u, SendPool=%u\n", lfqueue_size(recvBufferQueue), lfqueue_size(sendBufferQueue),
+            lfqueue_size(sendBufferPool));
+
         // nanosleep((const struct timespec[]){{0, 2E9L}}, NULL);
         sleep(1);
     }
@@ -294,20 +202,6 @@ static void* countThings(void* ptr) {
     pthread_exit(NULL);
 }
 
-// static void* suicideBoothProcessor(void* ptr) {
-//     Sample* victim;
-
-//     while (!stopSuicideBooth && lfqueue_size(suicideBooth) > 0) {
-//         victim = lfqueue_single_deq(suicideBooth);
-
-//         // it happens...
-//         if (victim != NULL) {
-//             free(victim);
-//         }
-//     }
-
-//     pthread_exit(NULL);
-// }
 static int uniformRand(int modulus) {
     int x;
 
@@ -330,32 +224,14 @@ static void* fillRecvBuffer(void* ptr) {
     int simulatedNoiseAndDelayNs = uniformRand(500000);
 
     while (1) {
-        // printf("Just deq single buf\n");
-        // buf = lfqueue_single_deq_must(recvBufferPool);
-        // if (buf == NULL) continue;
-
-        // // if no more buffers in pool, add another one
-        // if (buf == NULL) {
-        //     // printf("Warning: recvBufferPool empty.\n");
-        //     buf = malloc(FRAMES_PER_BUFFER * sizeof(Sample));
-
-        //     if (buf == NULL) {
-        //         printf("malloc failed\n");
-        //         exit(1);
-        //     }
-        // } else {
-        //     // printf("got buffer from recvBufferPool\n");
-        // }
         buf = malloc(FRAMES_PER_BUFFER * sizeof(Sample));
         for (int i = 0; i < FRAMES_PER_BUFFER; i++) {
             buf[i] = (Sample) (GeneratePinkNoise(&noise) * 32600.0 * gain);
         }
 
         simulatedNoiseAndDelayNs = uniformRand(800000);
-        // printf("Enq buf %x to recvBufferQueue\n", buf);
         lfqueue_enq(recvBufferQueue, buf);
-        // printf("Sleeping for 46ms + e\n");
-        nanosleep((const struct timespec[]){{0, 10850000 + simulatedNoiseAndDelayNs}}, NULL);
+        nanosleep((const struct timespec[]){{0, 10750000 + simulatedNoiseAndDelayNs}}, NULL);
         // nanosleep((const struct timespec[]){{0, 4650000 + simulatedNoiseAndDelayNs}}, NULL);
     }
 
@@ -375,14 +251,13 @@ static void* flushSendBuffer(void* ptr) {
         // If sendBuffer is NULL this means the callback drained the sendBufferPool.
         // In this edge case send silence.
         if (sendBuffer == NULL) {
-            continue;
-            // printf("sendBuffer=NULL, sending totalSilence\n");
-            // fwrite(totalSilence, sizeof(Sample), FRAMES_PER_BUFFER, fp);
+            fwrite(totalSilence, sizeof(Sample), FRAMES_PER_BUFFER, fp);
         } else {
             fwrite(sendBuffer, sizeof(Sample), FRAMES_PER_BUFFER, fp);
             lfqueue_enq(sendBufferPool, sendBuffer);
         }
     }
+
     fclose(fp);
     pthread_exit(NULL);
 }
