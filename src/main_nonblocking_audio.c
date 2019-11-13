@@ -50,6 +50,7 @@
 #define UNUSED(x) (void)(x)
 
 #define FREE_BUFFERS        150
+#define FREE_NODES          FREE_BUFFERS * 3
 #define BUFFER_POOL_SIZE    50
 #define AUDIO_DEVICE_IDX    1
 
@@ -69,6 +70,7 @@ typedef struct {
     lfqueue_t* sendBufferPool;
     lfqueue_t* recvBufferPool;
     RingBuffer* freeBuffers;
+    RingBuffer* lfQueueNodePool;
     int freeCount;
 } Buffers;
 
@@ -97,40 +99,37 @@ static lfqueue_t* recvBufferPool;
 
 // static RingBuffer* bufferPool;
 static RingBuffer* freeBuffers;
-
+static RingBuffer* lfQueueNodePool;
 static PinkNoise noise;
 
 int main(void) {
     // bufferPool = RingBuffer_init(BUFFER_POOL_SIZE*10);
     freeBuffers = RingBuffer_init(FREE_BUFFERS);
-
-    // for (int i = 0; i < BUFFER_POOL_SIZE; i++) {
-    //     Sample* sendBuf = malloc(bytesPerBuffer);
-    //     lfqueue_enq(sendBufferPool, sendBuf);
-
-    //     Sample* recvBuf = malloc(bytesPerBuffer);
-    //     lfqueue_enq(recvBufferPool, recvBuf);
-    // }
+    lfQueueNodePool = RingBuffer_init(FREE_NODES);
+    for (int i = 0; i < FREE_NODES; i++) {
+        lfqueue_cas_node_t* node = malloc(lfqueue_node_size());
+        RingBuffer_enqueue(lfQueueNodePool, node);
+    }
 
     sendBufferQueue = malloc(sizeof(lfqueue_t));
     recvBufferQueue = malloc(sizeof(lfqueue_t));
     sendBufferPool = malloc(sizeof(lfqueue_t));
     recvBufferPool = malloc(sizeof(lfqueue_t));
 
-    // lfqueue_init_mf(sendBufferQueue, bufferPool, buf_malloc, buf_free);
-    lfqueue_init(sendBufferQueue);
+    lfqueue_init_mf(sendBufferQueue, lfQueueNodePool, buf_malloc, buf_free);
+    // lfqueue_init(sendBufferQueue);
 
-    // lfqueue_init_mf(recvBufferQueue, bufferPool, buf_malloc, buf_free);
-    lfqueue_init(recvBufferQueue);
+    lfqueue_init_mf(recvBufferQueue, lfQueueNodePool, buf_malloc, buf_free);
+    // lfqueue_init(recvBufferQueue);
 
-    // lfqueue_init_mf(sendBufferPool, bufferPool, buf_malloc, buf_free);
-    lfqueue_init(sendBufferPool);
+    lfqueue_init_mf(sendBufferPool, lfQueueNodePool, buf_malloc, buf_free);
+    // lfqueue_init(sendBufferPool);
 
-    // lfqueue_init_mf(recvBufferPool, bufferPool, buf_malloc, buf_free);
-    lfqueue_init(recvBufferPool);
+    lfqueue_init_mf(recvBufferPool, lfQueueNodePool, buf_malloc, buf_free);
+    // lfqueue_init(recvBufferPool);
 
     Buffers buffers = {
-        sendBufferQueue, recvBufferQueue, sendBufferPool, recvBufferPool, freeBuffers, 0
+        sendBufferQueue, recvBufferQueue, sendBufferPool, recvBufferPool, freeBuffers, lfQueueNodePool, 0
     };
 
     InitializePinkNoise(&noise, 12);
@@ -203,7 +202,8 @@ int main(void) {
     while ((result = Pa_IsStreamActive(audioStream)) == 1) {
         printf("SendQueue=%u, RecvQueue=%u, SendPool=%u, RecvPool=%d\n", lfqueue_size(sendBufferQueue), lfqueue_size(recvBufferQueue),
             lfqueue_size(sendBufferPool), lfqueue_size(recvBufferPool));
-        printf("FreeBuffers=%i\n", buffers.freeCount);
+        // printf("FreeBuffers=%i\n", buffers.freeCount);
+        printf("FreeBuffers=%u, FreeNodes=%u\n", RingBuffer_count(buffers.freeBuffers), RingBuffer_count(buffers.lfQueueNodePool));
         Pa_Sleep(100);
     }
 
@@ -301,10 +301,11 @@ static int uniformRand(int modulus) {
  * Simulate receiving pink noise from somewhere.
  */
 static void* fillRecvBuffer(void* buffers) {
-    int gain = 1.0;
+    const int maxDelay = 1E6; // up to 1ms delay
+    const float gain = 0.3; // quiet it down a bit
     Sample* recvBuffer;
 
-    int simulatedNoiseAndDelayNs = uniformRand(500000);
+    int simulatedDelay;
 
     while (1) {
         // printf("Just deq single recvBuffer\n");
@@ -336,11 +337,11 @@ static void* fillRecvBuffer(void* buffers) {
             recvBuffer[i] = (Sample) (GeneratePinkNoise(&noise) * 32600.0 * gain);
         }
 
-        simulatedNoiseAndDelayNs = uniformRand(2E6); // simulate up to 2ms delay
+        simulatedDelay = uniformRand(maxDelay);
 
         lfqueue_enq(recvBufferQueue, recvBuffer);
-        // nanosleep((const struct timespec[]){{0, 11609978L + simulatedNoiseAndDelayNs}}, NULL);
-        nanosleep((const struct timespec[]){{0, ((unsigned long) (FRAME_TIME*1E9)) + simulatedNoiseAndDelayNs}}, NULL);
+        // nanosleep((const struct timespec[]){{0, 11609978L + simulatedDelay}}, NULL);
+        nanosleep((const struct timespec[]){{0, ((unsigned long) (FRAME_TIME*1E9)) + simulatedDelay}}, NULL);
     }
 
     pthread_exit(NULL);
@@ -375,11 +376,11 @@ static void* flushSendBuffer(void* buffers) {
 }
 
 // WIP
-static inline void* buf_malloc(void* pool, size_t sz) {
-    return RingBuffer_dequeue((RingBuffer*) pool);
+static inline void* buf_malloc(void* nodePool, size_t sz) {
+    return RingBuffer_dequeue((RingBuffer*) nodePool);
 }
 
 // WIP
-static inline void buf_free(void* pool, void* ptr) {
-    RingBuffer_enqueue((RingBuffer*) pool, ptr);
+static inline void buf_free(void* nodePool, void* ptr) {
+    RingBuffer_enqueue((RingBuffer*) nodePool, ptr);
 }

@@ -77,6 +77,10 @@ static inline void _lfqueue_free(void* pl, void* ptr) {
 	free(ptr);
 }
 
+inline size_t lfqueue_node_size() {
+	return sizeof(lfqueue_cas_node_t);
+}
+
 static void *
 _dequeue(lfqueue_t *lfqueue) {
 	lfqueue_cas_node_t *head, *next;

@@ -17,6 +17,7 @@ RingBuffer* RingBuffer_init(size_t size)
     buffer->readPointer = 0;
     buffer->writePointer = 0;
     buffer->size = size;
+    buffer->count = 0;
     memset(buffer->buffer, 1, size * sizeof(void*));
     return buffer;
 }
@@ -50,7 +51,15 @@ int RingBuffer_enqueue(RingBuffer* buffer, void *value)
     }
 
     buffer->buffer[realPointer] = value;
+    buffer->count++;
     return 1;
+}
+
+/**
+ * NOT THREAD SAFE. DO NOT TRUST THE RETURN VALUE. USE FOR DEBUGGING ONLY.
+ */
+size_t RingBuffer_count(RingBuffer* buffer) {
+    return buffer->count;
 }
 
 void* RingBuffer_dequeue(RingBuffer* buffer) {
@@ -76,7 +85,7 @@ void* RingBuffer_dequeue(RingBuffer* buffer) {
             break;
         }
     }
-
+    buffer->count--;
     return result;
 }
 

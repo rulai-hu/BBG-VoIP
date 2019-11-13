@@ -32,7 +32,6 @@
 #define LFQUEUE_H
 
 #include <stdlib.h>
-#include <stdint.h>
 
 typedef struct lfqueue_cas_node_s lfqueue_cas_node_t;
 typedef void* (*lfqueue_malloc_fn)(void*, size_t);
@@ -49,6 +48,7 @@ typedef struct {
 	void *pl;
 } lfqueue_t;
 
+extern size_t lfqueue_node_size(void);
 extern int   lfqueue_init(lfqueue_t *lfqueue);
 extern int   lfqueue_init_mf(lfqueue_t *lfqueue, void* pl, lfqueue_malloc_fn lfqueue_malloc, lfqueue_free_fn lfqueue_free);
 extern int   lfqueue_enq(lfqueue_t *lfqueue, void *value);
