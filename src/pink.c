@@ -37,79 +37,70 @@
 #include <math.h>
 #include "include/pink.h"
 
-static unsigned long GenerateRandomNumber( void );
+static unsigned long GenerateRandomNumber(void);
 
 /************************************************************/
 /* Calculate pseudo-random 32 bit number based on linear congruential method. */
-static unsigned long GenerateRandomNumber( void )
-{
-   /* Change this seed for different random sequences. */
-   static unsigned long randSeed = 22222;
-   randSeed = (randSeed * 196314165) + 907633515;
-   return randSeed;
+static unsigned long GenerateRandomNumber(void) {
+    /* Change this seed for different random sequences. */
+    static unsigned long randSeed = 22222;
+    randSeed = (randSeed * 196314165) + 907633515;
+    return randSeed;
 }
 
 /************************************************************/
 /* Setup PinkNoise structure for N rows of generators. */
-void InitializePinkNoise( PinkNoise *pink, int numRows )
-{
-   int i;
-   long pmax;
-   pink->pink_Index = 0;
-   pink->pink_IndexMask = (1<<numRows) - 1;
-   /* Calculate maximum possible signed random value. Extra 1 for white noise always added. */
-   pmax = (numRows + 1) * (1<<(PINK_RANDOM_BITS-1));
-   pink->pink_Scalar = 1.0f / pmax;
-   /* Initialize rows. */
-   for( i=0; i<numRows; i++ ) pink->pink_Rows[i] = 0;
-   pink->pink_RunningSum = 0;
+void InitializePinkNoise(PinkNoise *pink, int numRows) {
+    int i;
+    long pmax;
+    pink->pink_Index = 0;
+    pink->pink_IndexMask = (1<<numRows) - 1;
+    /* Calculate maximum possible signed random value. Extra 1 for white noise always added. */
+    pmax = (numRows + 1) * (1<<(PINK_RANDOM_BITS-1));
+    pink->pink_Scalar = 1.0f / pmax;
+
+    /* Initialize rows. */
+    for (i = 0; i < numRows; i++) {
+        pink->pink_Rows[i] = 0;
+    }
+
+    pink->pink_RunningSum = 0;
 }
 
-#define PINK_MEASURE
-#ifdef PINK_MEASURE
-float pinkMax = -999.0;
-float pinkMin =  999.0;
-#endif
-
 /* Generate Pink noise values between -1.0 and +1.0 */
-float GeneratePinkNoise( PinkNoise *pink )
-{
-   long newRandom;
-   long sum;
-   float output;
-   /* Increment and mask index. */
-   pink->pink_Index = (pink->pink_Index + 1) & pink->pink_IndexMask;
-   /* If index is zero, don't update any random values. */
-   if( pink->pink_Index != 0 )
-   {
-       /* Determine how many trailing zeros in PinkIndex. */
-       /* This algorithm will hang if n==0 so test first. */
-       int numZeros = 0;
-       int n = pink->pink_Index;
-       while( (n & 1) == 0 )
-       {
-           n = n >> 1;
-           numZeros++;
-       }
-       /* Replace the indexed ROWS random value.
-        * Subtract and add back to RunningSum instead of adding all the random
-        * values together. Only one changes each time.
-        */
-       pink->pink_RunningSum -= pink->pink_Rows[numZeros];
-       newRandom = ((long)GenerateRandomNumber()) >> PINK_RANDOM_SHIFT;
-       pink->pink_RunningSum += newRandom;
-       pink->pink_Rows[numZeros] = newRandom;
-   }
+float GeneratePinkNoise(PinkNoise *pink) {
+    long newRandom;
+    long sum;
+    float output;
+    /* Increment and mask index. */
+    pink->pink_Index = (pink->pink_Index + 1) & pink->pink_IndexMask;
+    /* If index is zero, don't update any random values. */
+    if ( pink->pink_Index != 0 ) {
+        /* Determine how many trailing zeros in PinkIndex. */
+        /* This algorithm will hang if n==0 so test first. */
+        int numZeros = 0;
+        int n = pink->pink_Index;
 
-   /* Add extra white noise value. */
-   newRandom = ((long)GenerateRandomNumber()) >> PINK_RANDOM_SHIFT;
-   sum = pink->pink_RunningSum + newRandom;
-   /* Scale to range of -1.0 to 0.9999. */
-   output = pink->pink_Scalar * sum;
-#ifdef PINK_MEASURE
-   /* Check Min/Max */
-   if( output > pinkMax ) pinkMax = output;
-   else if( output < pinkMin ) pinkMin = output;
-#endif
-   return output;
+        while ((n & 1) == 0) {
+            n = n >> 1;
+            numZeros++;
+        }
+
+        /* Replace the indexed ROWS random value.
+         * Subtract and add back to RunningSum instead of adding all the random
+         * values together. Only one changes each time.
+         */
+        pink->pink_RunningSum -= pink->pink_Rows[numZeros];
+        newRandom = ((long) GenerateRandomNumber()) >> PINK_RANDOM_SHIFT;
+        pink->pink_RunningSum += newRandom;
+        pink->pink_Rows[numZeros] = newRandom;
+    }
+
+    /* Add extra white noise value. */
+    newRandom = ((long) GenerateRandomNumber()) >> PINK_RANDOM_SHIFT;
+    sum = pink->pink_RunningSum + newRandom;
+    /* Scale to range of -1.0 to 0.9999. */
+    output = pink->pink_Scalar * sum;
+
+    return output;
 }
