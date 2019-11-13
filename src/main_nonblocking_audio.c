@@ -49,14 +49,15 @@
 
 #define UNUSED(x) (void)(x)
 
-#define FREE_BUFFERS        150
-#define FREE_NODES          FREE_BUFFERS * 3
-#define BUFFER_POOL_SIZE    50
-#define AUDIO_DEVICE_IDX    1
-
 #define FRAMES_PER_BUFFER   512
 #define SAMPLE_RATE         44100
 #define FRAME_TIME          ((double) FRAMES_PER_BUFFER / SAMPLE_RATE)
+
+#define FREE_BUFFERS        300
+#define FREE_NODES          300
+#define BUFFER_POOL_SIZE    50
+#define AUDIO_DEVICE_IDX    1
+
 // #define FRAMES_PER_BUFFER   2048 // 46 ms per buffer @ 44khz
 
 #define PA_SAMPLE_TYPE      paInt16
@@ -71,7 +72,6 @@ typedef struct {
     lfqueue_t* recvBufferPool;
     RingBuffer* freeBuffers;
     RingBuffer* lfQueueNodePool;
-    int freeCount;
 } Buffers;
 
 static void* fillRecvBuffer(void* ptr);
@@ -105,6 +105,7 @@ static PinkNoise noise;
 int main(void) {
     // bufferPool = RingBuffer_init(BUFFER_POOL_SIZE*10);
     freeBuffers = RingBuffer_init(FREE_BUFFERS);
+
     lfQueueNodePool = RingBuffer_init(FREE_NODES);
     for (int i = 0; i < FREE_NODES; i++) {
         lfqueue_cas_node_t* node = malloc(lfqueue_node_size());
@@ -129,7 +130,7 @@ int main(void) {
     // lfqueue_init(recvBufferPool);
 
     Buffers buffers = {
-        sendBufferQueue, recvBufferQueue, sendBufferPool, recvBufferPool, freeBuffers, lfQueueNodePool, 0
+        sendBufferQueue, recvBufferQueue, sendBufferPool, recvBufferPool, freeBuffers, lfQueueNodePool
     };
 
     InitializePinkNoise(&noise, 12);
@@ -148,8 +149,9 @@ int main(void) {
     for (int i = 0; i < FREE_BUFFERS; i++) {
         Sample* buffer = malloc(bytesPerBuffer);
         RingBuffer_enqueue(freeBuffers, buffer);
-        (buffers.freeCount)++;
     }
+
+    printf("Init FreeBuffer=%u\n", RingBuffer_count(freeBuffers));
 
     totalSilence = malloc(bytesPerBuffer);
     memset(totalSilence, SILENCE, bytesPerBuffer);
@@ -200,10 +202,11 @@ int main(void) {
         goto done;
 
     while ((result = Pa_IsStreamActive(audioStream)) == 1) {
-        printf("SendQueue=%u, RecvQueue=%u, SendPool=%u, RecvPool=%d\n", lfqueue_size(sendBufferQueue), lfqueue_size(recvBufferQueue),
-            lfqueue_size(sendBufferPool), lfqueue_size(recvBufferPool));
-        // printf("FreeBuffers=%i\n", buffers.freeCount);
-        printf("FreeBuffers=%u, FreeNodes=%u\n", RingBuffer_count(buffers.freeBuffers), RingBuffer_count(buffers.lfQueueNodePool));
+        printf("SendQueue=%u, RecvQueue=%u, FreeBuffers=%u, FreeNodes=%u\n",
+            lfqueue_size(sendBufferQueue), lfqueue_size(recvBufferQueue),
+            RingBuffer_count(buffers.freeBuffers), RingBuffer_count(buffers.lfQueueNodePool)
+        );
+
         Pa_Sleep(100);
     }
 
@@ -244,8 +247,8 @@ static int rwAudio(const void* inputBuffer, void* outputBuffer, unsigned long fr
     Sample* recvBuffer = lfqueue_single_deq(buffers->recvBufferQueue);
     Sample* recvBufferBase = recvBuffer;
     // Sample* sendBuffer = lfqueue_single_deq(buffers->sendBufferPool);
-    // Sample* sendBuffer = RingBuffer_dequeue(buffers->freeBuffers);
-    // (buffers->freeCount)--;
+    Sample* sendBuffer = RingBuffer_dequeue(buffers->freeBuffers);
+    Sample* sendBufferBase = sendBuffer;
 
     // Write audio data to output buffer to be played.
     // Doesn't contain anything meaningful right now.
@@ -268,19 +271,18 @@ static int rwAudio(const void* inputBuffer, void* outputBuffer, unsigned long fr
         // lfqueue_enq(buffers->recvBufferPool, recvBuffer);
         // free(recvBuffer); // free does not work in real-time
         RingBuffer_enqueue(buffers->freeBuffers, recvBufferBase);
-        (buffers->freeCount)++;
     }
 
-    // if (sendBuffer != NULL) {
-    //     for (i = 0; i < frameCount; i++) {
-    //         *sendBuffer++ = *readPtr++;
-    //     }
-    // }
+    if (sendBuffer != NULL) {
+        for (i = 0; i < frameCount; i++) {
+            *sendBuffer++ = *readPtr++;
+        }
+    }
 
     // If sendBuffer = NULL, this means the pool is exhausted. This is probably
     // because the flushSendBuffer thread is not processing queued audio fast enough.
     // In this case, we just send SILENCE.
-    // lfqueue_enq(sendBufferQueue, sendBuffer);
+    lfqueue_enq(sendBufferQueue, sendBufferBase);
 
     return paContinue;
 }
@@ -315,8 +317,6 @@ static void* fillRecvBuffer(void* buffers) {
             // printf("Warning: dropped frame\n");
             continue;
         }
-
-        (((Buffers*) buffers)->freeCount)--;
 
         // if no more buffers in pool, add another one
         // if (recvBuffer == NULL) {
@@ -364,23 +364,21 @@ static void* flushSendBuffer(void* buffers) {
             printf("sendBuffer=NULL, sending totalSilence\n");
             // fwrite(totalSilence, sizeof(Sample), FRAMES_PER_BUFFER, fp);
         } else {
-            printf("Sending frames\n");
+            // printf("Sending frames\n");
             fwrite(sendBuffer, sizeof(Sample), FRAMES_PER_BUFFER, fp);
             // lfqueue_enq(sendBufferPool, sendBuffer);
             RingBuffer_enqueue(freeBuffers, sendBuffer);
-            (((Buffers*)buffers)->freeCount)++;
         }
     }
+
     fclose(fp);
     pthread_exit(NULL);
 }
 
-// WIP
 static inline void* buf_malloc(void* nodePool, size_t sz) {
     return RingBuffer_dequeue((RingBuffer*) nodePool);
 }
 
-// WIP
 static inline void buf_free(void* nodePool, void* ptr) {
     RingBuffer_enqueue((RingBuffer*) nodePool, ptr);
 }
