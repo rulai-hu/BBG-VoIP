@@ -49,6 +49,10 @@ all: $(OBJECTS)
 	cp $(OUTPUT) $(OUTPUT_DIR)
 	@echo "Program generated at: $(OUTPUT_DIR)$(OUTPUT)"
 
+pretty:
+	$(COMPILER) src/main_pretty.c src/dialservice.c src/voiceserver.c src/addressbook.c src/call.c src/connection.c -I$(CURDIR) -g -std=c99 -D _POSIX_C_SOURCE=200809L -o pretty $(LFLAGS)
+	mv pretty $(OUTPUT_DIR)
+
 blocking_audio:
 	$(COMPILER) src/main_blocking_audio.c src/lfqueue.c src/pink.c libportaudio.a -I$(CURDIR) -g -std=c99 -D _POSIX_C_SOURCE=200809L -o blocking_audio_test $(LFLAGS)
 	mv blocking_audio_test $(OUTPUT_DIR)
