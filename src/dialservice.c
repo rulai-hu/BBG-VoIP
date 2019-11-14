@@ -13,10 +13,11 @@ static void startThread(void);
 static pthread_t dialServiceThread;
 static pthread_mutex_t inputMutex = PTHREAD_MUTEX_INITIALIZER;
 
-static char inputBuffer[64];
+static char inputBuffer[INPUT_BUFFER_LENGTH];
 static int serviceSuspended;
 static int stop = 0;
 static DialEventHandler dialEventHandler;
+
 void DialService_start(DialEventHandler callback) {
     stop = 0;
     serviceSuspended = 0;
