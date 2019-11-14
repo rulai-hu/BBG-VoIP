@@ -81,6 +81,10 @@ device_info:
 	$(COMPILER) src/device_info.c libportaudio.a -pthread -I$(CURDIR) -std=c99 -D _POSIX_C_SOURCE=200809L -o device_info $(LFLAGS)
 	cp device_info $(OUTPUT_DIR)
 
+volume_mixer:
+	$(COMPILER) src/volume_mixer.c src/file.c include/volume_mixer.h include/file.h $(GCCLINKERFLAGS) -o volume_mixer $(LFLAGS) -lpthread -lasound
+	cp volume_mixer $(OUTPUT_DIR)
+
 # $ make memchk
 memchk: $(OBJECTS)
 	make all
