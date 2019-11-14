@@ -1,7 +1,7 @@
 #ifndef DIALSERVICE_H
 #define DIALSERVICE_H
 
-typedef void (*DialEventHandler)(char*);
+typedef void (*DialEventHandler)(const char*);
 
 void DialService_start(DialEventHandler);
 void DialService_stop(void);
