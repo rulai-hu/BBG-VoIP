@@ -48,7 +48,7 @@ static void onDial(const char* name) {
     AddressLookupResult lookupResult = AddressBook_lookup(name, &dest);
 
     if (lookupResult != ADDRESS_FOUND) {
-        printf("Address not found for %s\n", name);
+        printf("Address not found for '%s'.\n", name);
         return;
     }
 
@@ -61,6 +61,8 @@ static void onDial(const char* name) {
         fprintf(stderr, "Unable to connect.\n");
         return;
     }
+
+    printf("Connection established through socket %d.\n", connection.socket);
 
     DialService_suspend();
 
@@ -92,6 +94,8 @@ static void handleIncomingCall(Address* caller, Connection* conn) {
 
         fprintf(stderr, "Not a valid input. Try again.\n");
     }
+
+    // printf("Call is on socket %d.\n", conn->socket);
 
     Call_begin(conn);
 

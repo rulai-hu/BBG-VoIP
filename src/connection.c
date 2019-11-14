@@ -1,5 +1,6 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -39,7 +40,7 @@ void Connection_close() {
 }
 
 void Connection_reject(Connection* conn) {
-
+    close(conn->socket);
 }
 
 FileDescriptor Connection_listen() {

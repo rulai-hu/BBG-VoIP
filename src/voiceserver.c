@@ -35,7 +35,25 @@ void VoiceServer_start(IncomingCallEventHandler callback) {
 }
 
 void VoiceServer_stop() {
-    printf("VoiceServer stopped.\n");
+    stop = 1;
+
+    int res = pthread_cancel(voiceServerThread);
+
+    if (res != 0) {
+        fprintf(stderr, "pthread_cancel failed (thread doesn't exist wtf?)\n");
+    }
+
+    void* exitResult;
+
+    pthread_join(voiceServerThread, &exitResult);
+
+    close(listenSocket);
+
+    if (exitResult == PTHREAD_CANCELED) {
+        printf("VoiceServer stopped.\n");
+    } else {
+        fprintf(stderr, "Unable to stop VoiceServer.\n");
+    }
 }
 
 void* acceptConnections(void* ptr) {

@@ -51,6 +51,10 @@ void DialService_suspend() {
 }
 
 void DialService_resume() {
+    if (!serviceSuspended) {
+        return;
+    }
+
     // Consume stdin before starting service.
     int ch;
     while ((ch = fgetc(stdin)) != EOF && ch != '\n') {}
