@@ -11,8 +11,7 @@ HEADERS = \
 OBJECTS = \
 	socket.o \
 	main.o \
-	ringbuffer.o \
-	libportaudio.a
+	ringbuffer.o 
 
 # Compiler
 COMPILER = arm-linux-gnueabihf-gcc
