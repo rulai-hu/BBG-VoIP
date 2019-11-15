@@ -33,17 +33,17 @@ void* volumeThread()
 {
 	while (!stopping) {
         int reading = readVoltageRawFromChannel(0);
-        int volume = reading_to_volume(reading);
+        long volume = reading_to_volume(reading);
         set_volume(volume);
 	}
 
 	return NULL;
 }
 
-int reading_to_volume(int reading)
+long reading_to_volume(int reading)
 {
-    double volume_precise = (reading * 100.00) / 4095;
-    int volume_rounded = round(volume_precise);
+    long volume_precise = (reading * 100.00) / 4095;
+    long volume_rounded = round(volume_precise);
     return volume_rounded;
 }
 
@@ -59,10 +59,16 @@ int readVoltageRawFromChannel(unsigned int channel) {
     return atoi(read_voltage_raw);
 }
 
-void set_volume(int volume)
-{
 
-	printf("Volume: %d\n", volume);
+void set_volume(long volume)
+{
+    // Ensure volume is reasonable; If so, cache it for later getVolume() calls.
+	if (volume < 0 || volume > 100) {
+		printf("ERROR: Volume must be between 0 and 100.\n");
+		return;
+	}
+
+	printf("Volume: %ld\n", volume);
 
     long min, max;
     snd_mixer_t *handle;
