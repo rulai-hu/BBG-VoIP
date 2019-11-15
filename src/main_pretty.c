@@ -5,6 +5,7 @@
 #include "include/dialservice.h"
 #include "include/addressbook.h"
 #include "include/connection.h"
+#include "include/audio.h"
 #include "include/call.h"
 
 static void onDial(const char*);
@@ -25,6 +26,7 @@ int main(void) {
     pthread_sigmask(SIG_BLOCK, &signalSet, NULL);
 
     // signal(SIGINT, SIGINTHandler);
+    Audio_init();
     AddressBook_init();
     VoiceServer_start(handleIncomingCall);
     DialService_start(onDial);
@@ -36,6 +38,7 @@ int main(void) {
 
     DialService_stop();
     VoiceServer_stop();
+    Audio_teardown();
 
     printf("Bye.\n");
     fflush(stdout);
@@ -66,7 +69,12 @@ static void onDial(const char* name) {
 
     DialService_suspend();
 
-    Call_begin(&connection);
+    int callResult = Call_begin(&connection);
+
+    if (callResult == 0) {
+        fprintf(stderr, "Unable to start call with %s.\n", name);
+        return;
+    }
 
     // poll(connection->closed, blah blah)
 

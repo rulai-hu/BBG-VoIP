@@ -3,7 +3,7 @@
 
 #include "include/connection.h"
 
-void Call_begin(Connection*);
+int Call_begin(const Connection*);
 void Call_terminate(void);
 
 #endif
