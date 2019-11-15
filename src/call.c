@@ -16,8 +16,8 @@
 #include "include/audio.h"
 #include "include/call.h"
 
-static void receiveDatagram(FrameBuffer, const size_t);
-static void sendDatagram(FrameBuffer, const size_t);
+static AudioCallbackResult receiveDatagram(FrameBuffer, const size_t);
+static AudioCallbackResult sendDatagram(FrameBuffer, const size_t);
 static void setError(int);
 
 const Connection* connection;
@@ -46,7 +46,7 @@ void Call_terminate() {
     Audio_stop();
 }
 
-static void sendDatagram(FrameBuffer buffer, const size_t bufferSize) {
+static AudioCallbackResult sendDatagram(FrameBuffer buffer, const size_t bufferSize) {
     ssize_t bytesSent = send(connection->socket, buffer, bufferSize, 0);
 
     if (bytesSent < 0) {
@@ -59,7 +59,7 @@ static void sendDatagram(FrameBuffer buffer, const size_t bufferSize) {
     // }
 }
 
-static void receiveDatagram(FrameBuffer buffer, const size_t bufferSize) {
+static AudioCallbackResult receiveDatagram(FrameBuffer buffer, const size_t bufferSize) {
     ssize_t bytesReceived = recv(connection->socket, buffer, bufferSize, 0);
 
 

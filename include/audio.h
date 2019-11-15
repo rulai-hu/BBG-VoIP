@@ -6,8 +6,12 @@
 #define Sample short
 typedef Sample* FrameBuffer;
 
-typedef void (*AudioProducer)(FrameBuffer, const size_t);
-typedef void (*AudioConsumer)(FrameBuffer, const size_t);
+typedef enum {
+    AUDIO_CONTINUE_CONSUMING = 0, AUDIO_CONTINUE_PRODUCING, AUDIO_STOP_CONSUMING, AUDIO_STOP_PRODUCING
+} AudioCallbackResult;
+
+typedef AudioCallbackResult (*AudioProducer)(FrameBuffer, const size_t);
+typedef AudioCallbackResult (*AudioConsumer)(FrameBuffer, const size_t);
 
 typedef enum {
     AUDIO_OK = 0, AUDIO_NOT_INITIALIZED, AUDIO_OPEN_STREAM_FAIL, AUDIO_START_STREAM_FAIL, AUDIO_CLOSE_STREAM_FAIL
