@@ -7,10 +7,12 @@
 typedef Sample* FrameBuffer;
 
 typedef enum {
-    AUDIO_CONTINUE_CONSUMING = 0, AUDIO_CONTINUE_PRODUCING, AUDIO_STOP_CONSUMING, AUDIO_STOP_PRODUCING
+    AUDIO_CONTINUE_RECORDING = 0, AUDIO_CONTINUE_PLAYBACK, AUDIO_STOP_RECORDING, AUDIO_STOP_PLAYBACK
 } AudioCallbackResult;
 
+// Produces framebuffers for playback
 typedef AudioCallbackResult (*AudioProducer)(FrameBuffer, const size_t);
+// Consumes framebuffers produced by the audio device
 typedef AudioCallbackResult (*AudioConsumer)(FrameBuffer, const size_t);
 
 typedef enum {

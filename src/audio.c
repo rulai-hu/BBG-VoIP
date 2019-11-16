@@ -46,7 +46,6 @@
 #include "include/portaudio.h"
 #include "include/lfqueue.h"
 #include "include/audio.h"
-// #include "include/pink.h"
 
 #define UNUSED(x) (void)(x)
 
@@ -60,55 +59,54 @@
 #define FRAMEBUFFER_SIZE    FRAMES_PER_BUFFER * sizeof(Sample) * MONO // 1 channel
 
 #define FREE_BUFFERS        300
-#define FREE_NODES          300
+#define FREE_NODES          600
 #define BUFFER_POOL_SIZE    50
 #define AUDIO_DEVICE_IDX    1
 
 // 1 sec playback time. Multiply by a constant n to get n secs.
-#define MIN_RECV_QUEUE_LENGTH ((unsigned) SAMPLE_RATE / FRAMES_PER_BUFFER)
+#define MIN_PLAYBACK_QUEUE_LENGTH ((unsigned) SAMPLE_RATE / FRAMES_PER_BUFFER)
 
 typedef struct {
-    lfqueue_t* sendBufferQueue;
-    lfqueue_t* recvBufferQueue;
+    lfqueue_t* recordBufferQueue;
+    lfqueue_t* playbackBufferQueue;
     RingBuffer* freeBuffers;
-    RingBuffer* lfQueueNodePool;
-} Buffers;
+    RingBuffer* freeNodes;
+} AudioBuffers;
 
-static void* fillRecvBuffer(void* ptr);
-static void* flushSendBuffer(void* ptr);
+AudioBuffers audioBuffers;
 
-static void bufferRecvQueue(void);
+static void* fillPlaybackQueue(void* ptr);
+static void* flushRecordQueue(void* ptr);
+
+static void clearAllQueues(void);
+static void bufferPlaybackQueue(lfqueue_t*);
 
 static inline void* bufferMalloc(void*, size_t);
 static inline void bufferFree(void*, void*);
 
-static int rwAudio(const void*, void*, unsigned long, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void*);
-
-static void sendFrameBuffer(FrameBuffer);
-static void receiveFrameBuffer(FrameBuffer);
+static int streamCallback(const void*, void*, unsigned long, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void*);
 
 static RingBuffer* initFreeBuffers(void);
 static RingBuffer* initFreeNodes(void);
-static lfqueue_t* initSendQueue(RingBuffer*);
-static lfqueue_t* initRecvQueue(RingBuffer*);
+static lfqueue_t* initRecordQueue(RingBuffer*);
+static lfqueue_t* initPlaybackQueue(RingBuffer*);
 
 static PaStreamParameters inputParams, outputParams;
 static PaStream* audioStream;
 
-static pthread_t recvThread, sendThread;
+static pthread_t fillPlaybackQueueThread, flushRecordQueueThread, statsThread;
 
 static const Sample totalSilence[FRAMES_PER_BUFFER] = { [0 ... (FRAMES_PER_BUFFER - 1)] = SILENCE };
 
 static RingBuffer* freeBuffers;
 static RingBuffer* freeNodes;
 
-static lfqueue_t* sendBufferQueue;
-static lfqueue_t* recvBufferQueue;
+static lfqueue_t* recordBufferQueue;
+static lfqueue_t* playbackBufferQueue;
 
 static _Bool initialized = false;
-static _Bool stopAudio = false;
-
-// static PinkNoise noise;
+static _Bool stopPlayback = false;
+static _Bool stopRecording = false;
 
 /**
  * This must be called once, and before Audio_start() is called.
@@ -121,20 +119,26 @@ void Audio_init() {
         return;
     }
 
-    stopAudio = false;
+    stopRecording = false;
+    stopPlayback = false;
 
     // Initialize resource pools
     freeBuffers = initFreeBuffers();
     freeNodes = initFreeNodes();
 
-    // Initialize queues for send/recv of frame buffers
-    sendBufferQueue = initSendQueue(freeNodes);
-    recvBufferQueue = initRecvQueue(freeNodes);
+    // Initialize queues for playback/record frame buffers
+    recordBufferQueue = initRecordQueue(freeNodes);
+    playbackBufferQueue = initPlaybackQueue(freeNodes);
+
+    audioBuffers.recordBufferQueue = recordBufferQueue;
+    audioBuffers.playbackBufferQueue = playbackBufferQueue;
+    audioBuffers.freeBuffers = freeBuffers;
+    audioBuffers.freeNodes = freeNodes;
 
     PaError result = Pa_Initialize();
 
     if (result != paNoError) {
-        fprintf(stderr, "Audio_init: Pa_Initialize failed.\n");
+        fprintf(stderr, "[FATAL] Audio_init: Pa_Initialize failed.\n");
         exit(1);
     }
 
@@ -157,11 +161,77 @@ void Audio_init() {
 }
 
 void Audio_teardown() {
+    // Free all PortAudio resources
     Pa_Terminate();
+
+    // Misnomer: this doesn't actually destroy the queue,
+    // it just clears it out and set its size to 0. So
+    // basically a reset.
+    lfqueue_destroy(playbackBufferQueue);
+    lfqueue_destroy(recordBufferQueue);
+
+    // Free the queues.
+    free(playbackBufferQueue);
+    free(recordBufferQueue);
+
+    // Free node memory.
+    lfqueue_cas_node_t* node;
+
+    int cnt = 0;
+
+    while ((node = RingBuffer_dequeue(freeNodes)) != NULL) {
+        cnt++;
+        free(node);
+    }
+
+#ifdef DEBUG_AUDIO
+    printf("Freed nodes=%d\n", cnt);
+#endif
+
+    RingBuffer_destroy(freeNodes);
+
+    // Free all frame buffers.
+    FrameBuffer buf;
+    cnt = 0;
+    while ((buf = RingBuffer_dequeue(freeBuffers)) != NULL) {
+        cnt++;
+        free(buf);
+    }
+
+#ifdef DEBUG_AUDIO
+    printf("Freed buffers=%d\n", cnt);
+#endif
+
+    RingBuffer_destroy(freeBuffers);
+
+    // Set all the (now invalid) audioBuffer pointers to NULL
+    audioBuffers.recordBufferQueue = NULL;
+    audioBuffers.playbackBufferQueue = NULL;
+    audioBuffers.freeBuffers = NULL;
+    audioBuffers.freeNodes = NULL;
+
+    initialized = false;
 }
 
+#ifdef DEBUG_AUDIO
+static void* printStats(void* ptr) {
+    PaError result;
+    while (1) {
+        printf("PlaybackQueue=%u, RecordQueue=%u, FreeBuffers=%u, FreeNodes=%u\n",
+            lfqueue_size(playbackBufferQueue), lfqueue_size(recordBufferQueue),
+            RingBuffer_count(freeBuffers), RingBuffer_count(freeNodes)
+        );
+
+        Pa_Sleep(100);
+    }
+
+    pthread_exit(NULL);
+}
+#endif
+
 AudioResult Audio_start(AudioProducer receiveFrameBuffer, AudioConsumer sendFrameBuffer) {
-    stopAudio = false;
+    stopRecording = false;
+    stopPlayback = false;
 
     AudioResult retval;
 
@@ -169,12 +239,12 @@ AudioResult Audio_start(AudioProducer receiveFrameBuffer, AudioConsumer sendFram
         return AUDIO_NOT_INITIALIZED;
     }
 
-    Buffers bufs = {
-        sendBufferQueue, recvBufferQueue, freeBuffers, freeNodes
-    };
+#ifdef DEBUG_AUDIO
+    pthread_create(&statsThread, NULL, printStats, NULL);
+#endif
 
     PaError result = Pa_OpenStream(&audioStream, &inputParams, &outputParams,
-            SAMPLE_RATE, FRAMES_PER_BUFFER, paClipOff, rwAudio, &bufs);
+            SAMPLE_RATE, FRAMES_PER_BUFFER, paClipOff, streamCallback, &audioBuffers);
 
     if (result != paNoError) {
         return AUDIO_OPEN_STREAM_FAIL;
@@ -182,9 +252,9 @@ AudioResult Audio_start(AudioProducer receiveFrameBuffer, AudioConsumer sendFram
 
     PaAlsa_EnableRealtimeScheduling(&audioStream, true);
 
-    pthread_create(&recvThread, NULL, fillRecvBuffer, receiveFrameBuffer);
+    pthread_create(&fillPlaybackQueueThread, NULL, fillPlaybackQueue, receiveFrameBuffer);
 
-    bufferRecvQueue();
+    bufferPlaybackQueue(playbackBufferQueue);
 
     result = Pa_StartStream(audioStream);
 
@@ -193,7 +263,7 @@ AudioResult Audio_start(AudioProducer receiveFrameBuffer, AudioConsumer sendFram
         goto EXCEPTION;
     }
 
-    pthread_create(&sendThread, NULL, flushSendBuffer, sendFrameBuffer);
+    pthread_create(&flushRecordQueueThread, NULL, flushRecordQueue, sendFrameBuffer);
 
     return AUDIO_OK;
 
@@ -208,10 +278,11 @@ EXCEPTION:
 }
 
 AudioResult Audio_stop() {
-    stopAudio = true;
+    stopPlayback = true;
+    stopRecording = true;
 
-    pthread_join(recvThread, NULL);
-    pthread_join(sendThread, NULL);
+    pthread_join(fillPlaybackQueueThread, NULL);
+    pthread_join(flushRecordQueueThread, NULL);
 
     PaError res = Pa_CloseStream(audioStream);
 
@@ -219,38 +290,53 @@ AudioResult Audio_stop() {
         return AUDIO_CLOSE_STREAM_FAIL;
     }
 
+    clearAllQueues();
+
+#ifdef DEBUG_AUDIO
+    printf("==============================================================\n");
+    printf("Final stats:\n");
+    printf("PlaybackQueue=%u, RecordQueue=%u, FreeBuffers=%u, FreeNodes=%u\n",
+        lfqueue_size(playbackBufferQueue), lfqueue_size(recordBufferQueue),
+        RingBuffer_count(freeBuffers), RingBuffer_count(freeNodes)
+    );
+#endif
+
     return AUDIO_OK;
 }
 
-static void receiveFrameBuffer(FrameBuffer buffer) {
-
-}
-
-static void sendFrameBuffer(FrameBuffer buffer) {
-
-}
-
-static void bufferRecvQueue() {
+static void bufferPlaybackQueue(lfqueue_t* queue) {
     // Busy wait for queue to exceed minimum playback time.
     // This is in terms of frame units, not time.
-    while (lfqueue_size(sendBufferQueue) < MIN_RECV_QUEUE_LENGTH) {
+    while (lfqueue_size(queue) < MIN_PLAYBACK_QUEUE_LENGTH) {
         ;
+    }
+}
+
+static void clearAllQueues() {
+    FrameBuffer discard;
+
+    while ((discard = lfqueue_single_deq(playbackBufferQueue)) != NULL) {
+        RingBuffer_enqueue(freeBuffers, discard);
+    }
+
+    while ((discard = lfqueue_single_deq(recordBufferQueue)) != NULL) {
+        RingBuffer_enqueue(freeBuffers, discard);
     }
 }
 
 /**
  * Synchronized input/output to audio device.
  */
-static int rwAudio(const void* inputBuffer, void* outputBuffer, unsigned long frameCount,
+static int streamCallback(const void* inputBuffer, void* outputBuffer, unsigned long frameCount,
         const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags, void* userData) {
 
     UNUSED(timeInfo);
     UNUSED(statusFlags);
 
-    Buffers* buffers = (Buffers*) userData;
+    AudioBuffers* buffers = (AudioBuffers*) userData;
 
-    FrameBuffer recvBuffer = lfqueue_single_deq(buffers->recvBufferQueue);
-    FrameBuffer recvBufferBase = recvBuffer;
+    FrameBuffer playbackBuffer = lfqueue_single_deq(buffers->playbackBufferQueue);
+    FrameBuffer playbackBufferBase = playbackBuffer;
 
     // Write audio data to output buffer to be played.
     // Doesn't contain anything meaningful right now.
@@ -261,57 +347,76 @@ static int rwAudio(const void* inputBuffer, void* outputBuffer, unsigned long fr
 
     unsigned int i;
 
-    if (recvBuffer == NULL) {
+    if (playbackBuffer == NULL) {
         for (i = 0; i < frameCount; i++) {
             *writePtr++ = SILENCE;
         }
     } else {
         for (i = 0; i < frameCount; i++) {
-            *writePtr++ = *recvBuffer++;
+            *writePtr++ = *playbackBuffer++;
         }
 
         // Place the consumed buffer back into the pool to be reused.
-        RingBuffer_enqueue(buffers->freeBuffers, recvBufferBase);
+        RingBuffer_enqueue(buffers->freeBuffers, playbackBufferBase);
     }
 
-    FrameBuffer sendBuffer = RingBuffer_dequeue(buffers->freeBuffers);
-    FrameBuffer sendBufferBase = sendBuffer;
+    FrameBuffer recordBuffer = RingBuffer_dequeue(buffers->freeBuffers);
+    FrameBuffer recordBufferBase = recordBuffer;
 
-    if (sendBuffer != NULL) {
+    int enqv;
+
+    if (recordBuffer != NULL) {
         for (i = 0; i < frameCount; i++) {
-            *sendBuffer++ = *readPtr++;
+            *recordBuffer++ = *readPtr++;
         }
 
-        lfqueue_enq(sendBufferQueue, sendBufferBase);
+        enqv = lfqueue_enq(buffers->recordBufferQueue, recordBufferBase);
     } else {
+        // printf("totalSilence\n");
         // This can only happen if we run out of freeBuffers,
         // which is a very bad thing.
-        lfqueue_enq(sendBufferQueue, totalSilence);
+        enqv = lfqueue_enq(buffers->recordBufferQueue, totalSilence);
+    }
+
+    if (enqv == -1) {
+        printf("[FATAL] Possible buffer underflow (lfqueue_enq failed). This shouldn't happen.\n");
+        exit(1);
     }
 
     return paContinue;
 }
 
-static void* fillRecvBuffer(void* recvFn) {
-    FrameBuffer recvDestination;
-    FrameBuffer recvSource;
-    AudioProducer getBuffer = (AudioProducer) recvFn;
+static void* fillPlaybackQueue(void* producer) {
+    FrameBuffer buffer;
+    Sample playbackSourceBuffer[FRAMES_PER_BUFFER];
+    AudioProducer produceBuffer = (AudioProducer) producer;
+    AudioCallbackResult result;
 
-    while (!stopAudio) {
-        getBuffer(recvSource, FRAMEBUFFER_SIZE);
-        recvDestination = RingBuffer_dequeue(freeBuffers);
+    while (!stopPlayback) {
+        result = produceBuffer(playbackSourceBuffer, FRAMEBUFFER_SIZE);
+
+        if (result == AUDIO_STOP_PLAYBACK) {
+            stopPlayback = true;
+            break;
+        }
+
+        buffer = RingBuffer_dequeue(freeBuffers);
 
         // This is bad. This means there are no more free buffers left
         // so frame processing must be deferred. This can cause stuttering
         // and high CPU usage.
-        if (recvDestination == NULL) {
+        if (buffer == NULL) {
             // printf("Warning: dropped frame\n");
             continue;
         }
 
-        memcpy(recvDestination, recvSource, FRAMEBUFFER_SIZE);
+        // We can't just enqueue the source buffer because it's managed by
+        // another thread. So we copy the contents into a buffer we manage
+        // ourselves. Also this keeps the number of buffers in circulation
+        // constant between the two audio threads + stream.
+        memcpy(buffer, playbackSourceBuffer, FRAMEBUFFER_SIZE);
 
-        lfqueue_enq(recvBufferQueue, recvDestination);
+        lfqueue_enq(playbackBufferQueue, buffer);
     }
 
     pthread_exit(NULL);
@@ -320,31 +425,37 @@ static void* fillRecvBuffer(void* recvFn) {
 /**
  * Simulate sending audio data somewhere
  */
-static void* flushSendBuffer(void* sendFn) {
-    FrameBuffer source;
-    AudioConsumer sendBuffer = (AudioConsumer) sendFn;
+static void* flushRecordQueue(void* consumer) {
+    FrameBuffer buffer;
+    AudioConsumer consumeBuffer = (AudioConsumer) consumer;
+    AudioCallbackResult result;
 
-    while (!stopAudio) {
-        source = lfqueue_single_deq(sendBufferQueue);
+    while (!stopRecording) {
+        buffer = lfqueue_single_deq(recordBufferQueue);
 
-        // This means the sendBufferQueue is empty. A good thing,
+        // This means the recordBufferQueue is empty. A good thing,
         // because we're keeping the outgoing backlog small.
-        if (source == NULL) {
+        if (buffer == NULL) {
             continue;
         }
+
+        result = consumeBuffer(buffer, FRAMEBUFFER_SIZE);
 
         // A bad thing. This means we've run out of freeBuffers to
         // buffer microphone input, so we've forever lost perfectly
         // good data. In this failure scenario, we buffer silence.
-        if (source == totalSilence) {
-            fprintf(stderr, "Warning: possible freeBuffer underflow. Try increasing number of free buffers.\n");
-            sendBuffer(source, FRAMEBUFFER_SIZE);
+        if (buffer == totalSilence) {
+            fprintf(stderr, "[WARN] Possible freeBuffer underflow. Try increasing number of free buffers.\n");
             // Do NOT return totalSilence to the free buffer pool,
             // because it's not a real buffer. It's just a constant.
         } else {
-            sendBuffer(source, FRAMEBUFFER_SIZE);
             // Return the frame buffer back to the pool to be reused.
-            RingBuffer_enqueue(freeBuffers, source);
+            RingBuffer_enqueue(freeBuffers, buffer);
+        }
+
+        if (result == AUDIO_STOP_RECORDING) {
+            stopRecording = true;
+            break;
         }
     }
 
@@ -352,51 +463,51 @@ static void* flushSendBuffer(void* sendFn) {
 }
 
 static RingBuffer* initFreeBuffers() {
-    RingBuffer* freeBuffers = RingBuffer_init(FREE_BUFFERS);
+    RingBuffer* buffers = RingBuffer_init(FREE_BUFFERS);
 
     for (int i = 0; i < FREE_BUFFERS; i++) {
-        Sample* buffer = malloc(FRAMEBUFFER_SIZE);
-        RingBuffer_enqueue(freeBuffers, buffer);
+        FrameBuffer fbuf = malloc(FRAMEBUFFER_SIZE);
+        RingBuffer_enqueue(buffers, fbuf);
     }
 
-    return freeBuffers;
+    return buffers;
 }
 
 static RingBuffer* initFreeNodes() {
-    RingBuffer* freeNodes = RingBuffer_init(FREE_NODES);
+    RingBuffer* buffer = RingBuffer_init(FREE_NODES);
 
     for (int i = 0; i < FREE_NODES; i++) {
         lfqueue_cas_node_t* node = malloc(lfqueue_node_size());
-        RingBuffer_enqueue(freeNodes, node);
+        RingBuffer_enqueue(buffer, node);
     }
 
-    return freeNodes;
+    return buffer;
 }
 
-static lfqueue_t* initSendQueue(RingBuffer* freeNodes) {
-    lfqueue_t* sendQueue = malloc(sizeof(lfqueue_t));
-    lfqueue_init_mf(sendQueue, freeNodes, bufferMalloc, bufferFree);
+static lfqueue_t* initRecordQueue(RingBuffer* buffer) {
+    lfqueue_t* queue = malloc(sizeof(lfqueue_t));
+    lfqueue_init_mf(queue, buffer, bufferMalloc, bufferFree);
 
-    return sendQueue;
+    return queue;
 }
 
-static lfqueue_t* initRecvQueue(RingBuffer* freeNodes) {
-    lfqueue_t* recvQueue = malloc(sizeof(lfqueue_t));
-    lfqueue_init_mf(recvBufferQueue, freeNodes, bufferMalloc, bufferFree);
+static lfqueue_t* initPlaybackQueue(RingBuffer* buffer) {
+    lfqueue_t* queue = malloc(sizeof(lfqueue_t));
+    lfqueue_init_mf(queue, buffer, bufferMalloc, bufferFree);
 
-    return recvQueue;
+    return queue;
 }
 
-static inline void* bufferMalloc(void* nodePool, size_t sz) {
+static inline void* bufferMalloc(void* pool, size_t sz) {
     UNUSED(sz);
-    return RingBuffer_dequeue((RingBuffer*) nodePool);
+    return RingBuffer_dequeue((RingBuffer*) pool);
 }
 
-static inline void bufferFree(void* nodePool, void* ptr) {
-    int res = RingBuffer_enqueue((RingBuffer*) nodePool, ptr);
+static inline void bufferFree(void* pool, void* ptr) {
+    int res = RingBuffer_enqueue((RingBuffer*) pool, ptr);
 
     if (res == 0) {
-        fprintf(stderr, "[!!!] FATAL: nodePool out of space. This shouldn't happen.\n");
+        fprintf(stderr, "[FATAL] bufferFree: nodePool out of space. This shouldn't happen.\n");
         exit(1);
     }
 }

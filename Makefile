@@ -11,7 +11,7 @@ HEADERS = \
 OBJECTS = \
 	socket.o \
 	main.o \
-	ringbuffer.o 
+	ringbuffer.o
 
 # Compiler
 COMPILER = arm-linux-gnueabihf-gcc
@@ -51,6 +51,10 @@ all: $(OBJECTS)
 pretty:
 	$(COMPILER) src/main_pretty.c src/dialservice.c src/voiceserver.c src/addressbook.c src/call.c src/connection.c -I$(CURDIR) -g -std=c99 -D _POSIX_C_SOURCE=200809L -o pretty $(LFLAGS)
 	mv pretty $(OUTPUT_DIR)
+
+audio_test:
+	$(COMPILER) src/main_audio_test.c src/audio.c src/lfqueue.c src/lfringbuffer.c src/pink.c libportaudio.a -Wextra -I$(CURDIR) -g -std=c99 -D _POSIX_C_SOURCE=200809L -o audio_test $(LFLAGS)
+	mv audio_test $(OUTPUT_DIR)
 
 blocking_audio:
 	$(COMPILER) src/main_blocking_audio.c src/lfqueue.c src/pink.c libportaudio.a -I$(CURDIR) -g -std=c99 -D _POSIX_C_SOURCE=200809L -o blocking_audio_test $(LFLAGS)
