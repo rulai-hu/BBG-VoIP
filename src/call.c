@@ -35,7 +35,7 @@ int Call_begin(const Connection* conn) {
         conn->socket, 0, 0
     };
 
-    pollParams.events = POLLRDHUP | POLLHUP;
+    pollParams.events = POLLRDHUP;
 
     int pollRes = poll(&pollParams, 1, -1);
 
@@ -47,11 +47,16 @@ void Call_terminate() {
 }
 
 static AudioCallbackResult sendDatagram(FrameBuffer buffer, const size_t bufferSize) {
+    // send will block in non-blocking mode on STREAM_SOCK if only a partial packet is sent.
     ssize_t bytesSent = send(connection->socket, buffer, bufferSize, 0);
 
     if (bytesSent < 0) {
+        shutdown(connection->socket, SHUT_RDWR);
         setError(errno);
+        return AUDIO_STOP_RECORDING;
     }
+
+    return AUDIO_CONTINUE_RECORDING;
 
     // send() can send out partial frames.
     // while (bytesSent < bufferSize) {
@@ -61,8 +66,19 @@ static AudioCallbackResult sendDatagram(FrameBuffer buffer, const size_t bufferS
 
 static AudioCallbackResult receiveDatagram(FrameBuffer buffer, const size_t bufferSize) {
     ssize_t bytesReceived = recv(connection->socket, buffer, bufferSize, 0);
+    ssize_t totalBytesReceived = bytesReceived;
+
+    while (totalBytesReceived < bufferSize) {
+        if (bytesReceived <= 0) {
+            return AUDIO_STOP_PLAYBACK;
+        }
+
+        bytesReceived = recv(connection->socket, buffer + totalBytesReceived, bufferSize - totalBytesReceived, 0);
+        totalBytesReceived += bytesReceived;
+    }
 
 
+    return AUDIO_CONTINUE_PLAYBACK;
 }
 
 static void setError(int error) {
