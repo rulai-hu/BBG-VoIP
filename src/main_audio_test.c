@@ -50,7 +50,12 @@ int main(void) {
     Audio_init();
 
     printf("Producing and consuming audio for 5 secs...\n");
-    int x = Audio_start(producer, consumer);
+    int res = Audio_start(producer, consumer);
+
+    if (res != AUDIO_OK) {
+        printf("Unable to start audio.\n");
+        return 1;
+    }
     printf("Audio started...\n");
     sleep(5);
 

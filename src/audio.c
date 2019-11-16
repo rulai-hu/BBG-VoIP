@@ -47,7 +47,6 @@
 #include "include/lfqueue.h"
 #include "include/audio.h"
 
-#define DEBUG_AUDIO
 #define UNUSED(x) (void)(x)
 
 #define PA_SAMPLE_TYPE      paInt16
@@ -209,6 +208,12 @@ void Audio_teardown() {
 
     RingBuffer_destroy(freeBuffers);
 
+    // Set the buffer / queue pointers to NULL
+    recordBufferQueue = NULL;
+    playbackBufferQueue = NULL;
+    freeBuffers = NULL;
+    freeNodes = NULL;
+
     // Set all the (now invalid) audioBuffer pointers to NULL
     audioBuffers.recordBufferQueue = NULL;
     audioBuffers.playbackBufferQueue = NULL;
@@ -217,22 +222,6 @@ void Audio_teardown() {
 
     initialized = false;
 }
-
-#ifdef DEBUG_AUDIO
-static void* printStats(void* ptr) {
-    PaError result;
-    while (!stopStats) {
-        printf("PlaybackQueue=%u, RecordQueue=%u, FreeBuffers=%u, FreeNodes=%u\n",
-            lfqueue_size(playbackBufferQueue), lfqueue_size(recordBufferQueue),
-            RingBuffer_count(freeBuffers), RingBuffer_count(freeNodes)
-        );
-
-        Pa_Sleep(100);
-    }
-
-    pthread_exit(NULL);
-}
-#endif
 
 AudioResult Audio_start(AudioProducer receiveFrameBuffer, AudioConsumer sendFrameBuffer) {
     stopRecording = false;
@@ -427,12 +416,9 @@ static void* fillPlaybackQueue(void* producer) {
 
     free(playbackSourceBuffer);
 
-    pthread_exit(NULL);
+    return NULL;
 }
 
-/**
- * Simulate sending audio data somewhere
- */
 static void* flushRecordQueue(void* consumer) {
     FrameBuffer buffer;
     AudioConsumer consumeBuffer = (AudioConsumer) consumer;
@@ -467,8 +453,24 @@ static void* flushRecordQueue(void* consumer) {
         }
     }
 
-    pthread_exit(NULL);
+    return NULL;
 }
+
+#ifdef DEBUG_AUDIO
+static void* printStats(void* ptr) {
+    PaError result;
+    while (!stopStats) {
+        printf("PlaybackQueue=%u, RecordQueue=%u, FreeBuffers=%u, FreeNodes=%u\n",
+            lfqueue_size(playbackBufferQueue), lfqueue_size(recordBufferQueue),
+            RingBuffer_count(freeBuffers), RingBuffer_count(freeNodes)
+        );
+
+        Pa_Sleep(100);
+    }
+
+    return NULL;
+}
+#endif
 
 static RingBuffer* initFreeBuffers() {
     RingBuffer* buffers = RingBuffer_init(FREE_BUFFERS);
