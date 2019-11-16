@@ -51,7 +51,7 @@ int main(void) {
 
     printf("Producing and consuming audio for 5 secs...\n");
     int x = Audio_start(producer, consumer);
-
+    printf("Audio started...\n");
     sleep(5);
 
     Audio_stop();

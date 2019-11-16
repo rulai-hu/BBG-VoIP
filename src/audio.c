@@ -47,6 +47,7 @@
 #include "include/lfqueue.h"
 #include "include/audio.h"
 
+#define DEBUG_AUDIO
 #define UNUSED(x) (void)(x)
 
 #define PA_SAMPLE_TYPE      paInt16
@@ -107,6 +108,10 @@ static lfqueue_t* playbackBufferQueue;
 static _Bool initialized = false;
 static _Bool stopPlayback = false;
 static _Bool stopRecording = false;
+
+#ifdef DEBUG_AUDIO
+static _Bool stopStats = false;
+#endif
 
 /**
  * This must be called once, and before Audio_start() is called.
@@ -216,7 +221,7 @@ void Audio_teardown() {
 #ifdef DEBUG_AUDIO
 static void* printStats(void* ptr) {
     PaError result;
-    while (1) {
+    while (!stopStats) {
         printf("PlaybackQueue=%u, RecordQueue=%u, FreeBuffers=%u, FreeNodes=%u\n",
             lfqueue_size(playbackBufferQueue), lfqueue_size(recordBufferQueue),
             RingBuffer_count(freeBuffers), RingBuffer_count(freeNodes)
@@ -280,19 +285,21 @@ EXCEPTION:
 AudioResult Audio_stop() {
     stopPlayback = true;
     stopRecording = true;
-
     pthread_join(fillPlaybackQueueThread, NULL);
     pthread_join(flushRecordQueueThread, NULL);
 
     PaError res = Pa_CloseStream(audioStream);
 
     if (res != paNoError) {
+        fprintf(stderr, "[WARN] Failed to close stream.\n");
         return AUDIO_CLOSE_STREAM_FAIL;
     }
 
     clearAllQueues();
 
 #ifdef DEBUG_AUDIO
+    stopStats = true;
+    pthread_join(statsThread, NULL);
     printf("==============================================================\n");
     printf("Final stats:\n");
     printf("PlaybackQueue=%u, RecordQueue=%u, FreeBuffers=%u, FreeNodes=%u\n",
@@ -372,7 +379,6 @@ static int streamCallback(const void* inputBuffer, void* outputBuffer, unsigned 
 
         enqv = lfqueue_enq(buffers->recordBufferQueue, recordBufferBase);
     } else {
-        // printf("totalSilence\n");
         // This can only happen if we run out of freeBuffers,
         // which is a very bad thing.
         enqv = lfqueue_enq(buffers->recordBufferQueue, totalSilence);
@@ -388,7 +394,7 @@ static int streamCallback(const void* inputBuffer, void* outputBuffer, unsigned 
 
 static void* fillPlaybackQueue(void* producer) {
     FrameBuffer buffer;
-    Sample playbackSourceBuffer[FRAMES_PER_BUFFER];
+    FrameBuffer playbackSourceBuffer = malloc(FRAMEBUFFER_SIZE);
     AudioProducer produceBuffer = (AudioProducer) producer;
     AudioCallbackResult result;
 
@@ -418,6 +424,8 @@ static void* fillPlaybackQueue(void* producer) {
 
         lfqueue_enq(playbackBufferQueue, buffer);
     }
+
+    free(playbackSourceBuffer);
 
     pthread_exit(NULL);
 }
