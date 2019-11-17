@@ -4,10 +4,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <errno.h>
+#include <limits.h>
 
 #define DELAY_NS 100000000L // 100ms in 
 #define BUFFER_SIZE 256
 #define NUM_GPIO 12
+#define DIAL_LENGTH 12
 #define GPIO_BASE_DIR "/sys/class/gpio/"
 
 static bool stop = false;
@@ -53,7 +56,7 @@ void KEYPAD_init(void)
 }
 
 
-short KEYPAD_getDial(void)
+const char * KEYPAD_getDial(void)
 {
 	FILE *file;
 	char buffer[BUFFER_SIZE];
@@ -67,7 +70,7 @@ short KEYPAD_getDial(void)
 	while(!stop)
 	{
 		//sleep a 20th of a second
-		nanosleep((const struct timespec[]){{0, 100000000L}}, NULL);
+		nanosleep((const struct timespec[]){{0, 50000000L}}, NULL);
 		for(int i = 0; i < NUM_GPIO -1; ++i) 
 		{
 
@@ -112,7 +115,7 @@ short KEYPAD_getDial(void)
 					//printf("%s", input);
 					printFlag = false;
 					iter++;
-					if(iter == 12)
+					if(iter == DIAL_LENGTH)
 					{
 						stop = true;
 						printf("\n");
@@ -122,11 +125,16 @@ short KEYPAD_getDial(void)
 			}
 		}
 	}
-	printf("sending input = %s", input);
+	//printf("sending input = %s\n", input);
 	if(iter == 0)
 	{
-		return -1;
+		return "-1";
 	} else {
-		return atoi(input);
+		char * ret_string;
+    	ret_string = malloc(sizeof(char) * DIAL_LENGTH);
+    	sprintf(ret_string, "%s", input);
+    	//printf("sending input = %s\n", ret_string);
+
+		return(ret_string);
 	}
 }

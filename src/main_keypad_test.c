@@ -10,9 +10,9 @@
 int main() 
 {
 	KEYPAD_init();
-	short num = KEYPAD_getDial();
+	char * str = KEYPAD_getDial();
 
-	printf("\nNumber entered: %d\n", num);
+	printf("\nNumber entered: %s\n", str);
 	sleep(1);
 	return 0;
 }
