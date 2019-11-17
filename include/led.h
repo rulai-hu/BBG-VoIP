@@ -1,6 +1,8 @@
 #ifndef LED_H
 #define LED_H
 
+void LED_init(void);
+
 void LED_red_flash(void);
 void LED_red_on(void);
 void LED_red_off(void);

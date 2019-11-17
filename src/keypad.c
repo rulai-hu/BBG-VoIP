@@ -36,7 +36,7 @@ void KEYPAD_init(void)
 		fclose(file);
 	}
 
-	sleep(1);//sleep here ensures files get updated before access
+	nanosleep((const struct timespec[]){{0, 300000000L}}, NULL);//sleep here ensures files get updated before access
 	//Set directions as in
 	for(int i = 0; i < NUM_GPIO; ++i) {
 		strcpy(buffer, GPIO_BASE_DIR "gpio");
@@ -52,7 +52,7 @@ void KEYPAD_init(void)
 		fprintf(file, "%s", "in");
 		fclose(file);
 	}
-	sleep(1);//sleep here ensures files get updated before access
+	nanosleep((const struct timespec[]){{0, 100000000L}}, NULL);//sleep here ensures files get updated before access
 }
 
 
