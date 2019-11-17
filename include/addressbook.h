@@ -12,7 +12,7 @@ typedef enum {
     ADDRESS_REVERSE_LOOKUP_FAILED
 } AddressLookupResult;
 
-// Struct to contain all necessary values of the caller's address
+// Container for all necessary values of the caller's address
 typedef struct {
     const char name[64];
     const char inetAddress[INET_ADDRSTRLEN];
