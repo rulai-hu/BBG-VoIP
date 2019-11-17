@@ -21,6 +21,7 @@ Connection peer;
 
 int main(void) {
     Audio_init();
+    AddressBook_init();
 
     // Create the socket where the program will listen for inbound
     // TCP connections.
@@ -70,6 +71,7 @@ int main(void) {
     Connection_close(&peer);
     printf("done.\n");
 
+    Audio_teardown();
     return 0;
 }
 

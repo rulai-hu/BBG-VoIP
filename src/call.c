@@ -67,6 +67,9 @@ static void createCallThread(Connection* conn) {
     // numCallThreads++;
 }
 
+/**
+ * Detached thread runner.
+ */
 static void* beginCall(void* ptr) {
     Connection* conn = (Connection*) ptr;
 
