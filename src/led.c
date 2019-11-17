@@ -4,13 +4,14 @@
 #include <time.h>
 #include <unistd.h>
 
-#define YELLOW 		= 0
-#define RED 		= 1
-#define BLUE 		= 2
-#define GPIO_DIR 	= "/sys/class/gpio"
-#define NUM_LIGHTS 	= 3
+#define YELLOW = 0
+#define RED = 1
+#define BLUE = 2
+#define GPIO_DIR = "/sys/class/gpio"
+#define NUM_LIGHTS = 3
+#define BUFFER_SIZE = 256
 
-static const char *GPIO[] = {"26", "46", '47'};
+static const char *GPIO[] = {"26", "46", "47"};
 
 void LED_init()
 {

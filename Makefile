@@ -97,8 +97,8 @@ key_test:
 	cp keypad $(OUTPUT_DIR)
 
 led_test:
-	$(COMPILER) src/main_led.c src/led.c include/led.h $(GCCLINKERFLAGS) -o leds $(LFLAGS) 
-	cp leds $(OUTPUT_DIR)
+	$(COMPILER) src/main_led.c src/led.c include/led.h $(GCCLINKERFLAGS) -o led_test $(LFLAGS) 
+	cp led_test $(OUTPUT_DIR)
 
 # $ make memchk
 memchk: $(OBJECTS)
