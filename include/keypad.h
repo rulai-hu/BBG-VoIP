@@ -1,6 +1,7 @@
-#ifndef KEYEPAD_H
-#define KEYEPAD_H
+#ifndef KEYPAD_H
+#define KEYPAD_H
 
-short getDial(void);
+void	KEYPAD_init(void);
+short	KEYPAD_getDial(void);
 
 #endif

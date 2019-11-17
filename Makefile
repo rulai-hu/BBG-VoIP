@@ -5,7 +5,7 @@ HEADERS = \
 	include/lfqueue.h \
 	include/pink.h \
 	include/portaudio.h \
-	include/pa_linux_alsa.h
+	include/pa_linux_alsa.h 
 
 # Object files
 OBJECTS = \
@@ -83,6 +83,10 @@ device_info:
 volume_mixer:
 	$(COMPILER) src/volume_mixer.c src/file.c include/volume_mixer.h include/file.h $(GCCLINKERFLAGS) -o volume_mixer $(LFLAGS) -lpthread -lasound
 	cp volume_mixer $(OUTPUT_DIR)
+
+key_test:
+	$(COMPILER) src/main_keypad_test.c src/keypad.c include/keypad.h $(GCCLINKERFLAGS) -o keypad $(LFLAGS) 
+	cp keypad $(OUTPUT_DIR)
 
 # $ make memchk
 memchk: $(OBJECTS)
