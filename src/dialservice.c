@@ -11,7 +11,7 @@ static void* getInput(void*);
 static void startThread(void);
 
 static pthread_t dialServiceThread;
-static pthread_mutex_t inputMutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t callMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static char inputBuffer[INPUT_BUFFER_LENGTH];
 static int serviceSuspended;
@@ -33,10 +33,14 @@ void DialService_suspend() {
         return;
     }
 
+    serviceSuspended = 1;
+
+    pthread_mutex_lock(&callMutex);
     int res = pthread_cancel(dialServiceThread);
+    pthread_mutex_unlock(&callMutex);
 
     if (res != 0) {
-        fprintf(stderr, "pthread_cancel failed (thread doesn't exist wtf?)\n");
+        fprintf(stderr, "[WARN] DialService_suspend: pthread_cancel failed, thread doesn't exist.\n");
     }
 
     void* exitResult;
@@ -44,10 +48,10 @@ void DialService_suspend() {
     pthread_join(dialServiceThread, &exitResult);
 
     if (exitResult == PTHREAD_CANCELED) {
-        serviceSuspended = 1;
-        printf("DialService suspended.\n");
+
+        printf("[INFO] DialService_suspend: DialService suspended.\n");
     } else {
-        fprintf(stderr, "Unable to suspend DialService. Whyyyyyy.\n");
+        fprintf(stderr, "[WARN] DialService_suspend: unable to suspend DialService..\n");
     }
 }
 
@@ -59,9 +63,9 @@ void DialService_resume() {
     // Consume stdin before starting service.
     int ch;
     while ((ch = fgetc(stdin)) != EOF && ch != '\n') {}
-    startThread();
     serviceSuspended = 0;
-    printf("DialService resumed.\n");
+    startThread();
+    printf("[INFO] DialService resumed.\n");
 }
 
 void DialService_stop() {
@@ -72,7 +76,7 @@ void DialService_stop() {
     // void* exitResult;
     // int res = pthread_join(dialServiceThread, &exitResult);
 
-    pthread_mutex_destroy(&inputMutex);
+    pthread_mutex_destroy(&callMutex);
 
     // if (res != 0 && exitResult != PTHREAD_CANCELED) {
     //     fprintf(stderr, "Unable to join dialServiceThread.\n");
@@ -93,7 +97,7 @@ static void startThread() {
 static void* getInput(void* ptr) {
     char localBuffer[INPUT_BUFFER_LENGTH];
 
-    while (!stop) {
+    while (!stop && !serviceSuspended) {
         memset(localBuffer, '\0', sizeof(localBuffer));
 
         printf("Call someone: ");
@@ -120,10 +124,10 @@ static void* getInput(void* ptr) {
             *pos = '\0';
         }
 
-        // pthread_mutex_lock(&inputMutex);
+        pthread_mutex_lock(&callMutex);
         memcpy(inputBuffer, localBuffer, sizeof(inputBuffer));
         dialEventHandler(inputBuffer);
-        // pthread_mutex_unlock(&inputMutex);
+        pthread_mutex_unlock(&callMutex);
     }
 
     pthread_exit(NULL);

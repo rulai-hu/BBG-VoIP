@@ -89,8 +89,8 @@ static void* beginCall(void* ptr) {
     };
 
     pollParams.events = POLLRDHUP;
-    size_t bytesAvailable;
-    int ioctlRes;
+    // size_t bytesAvailable;
+    // int ioctlRes;
 
     // printf("Polling socket...\n");
 
@@ -125,6 +125,7 @@ static void* beginCall(void* ptr) {
 
 static AudioCallbackResult sendDatagram(FrameBuffer buffer, const size_t bufferSize, void* data) {
     Connection* connection = (Connection*) data;
+
     // send() will block in non-blocking mode on STREAM_SOCK if only a partial packet is sent.
     ssize_t bytesSent = send(connection->socket, buffer, bufferSize, 0);
 
@@ -133,6 +134,8 @@ static AudioCallbackResult sendDatagram(FrameBuffer buffer, const size_t bufferS
         // setError(errno);
         return AUDIO_STOP_RECORDING;
     }
+
+    printf("Send\n");
 
     return AUDIO_CONTINUE_RECORDING;
 
@@ -156,6 +159,7 @@ static AudioCallbackResult receiveDatagram(FrameBuffer buffer, const size_t buff
         totalBytesReceived += bytesReceived;
     }
 
+    printf("Recv\n");
 
     return AUDIO_CONTINUE_PLAYBACK;
 }

@@ -58,6 +58,7 @@ int main(void) {
         fflush(stdout);
         sleep(1);
     }
+
     printf("\n");
 
     printf("Wake up. Terminating outbound call...\n");

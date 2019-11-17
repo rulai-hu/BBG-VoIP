@@ -60,7 +60,6 @@
 
 #define FREE_BUFFERS        300
 #define FREE_NODES          600
-#define BUFFER_POOL_SIZE    50
 #define AUDIO_DEVICE_IDX    1
 
 // 1 sec playback time. Multiply by a constant n to get n secs.
@@ -78,6 +77,7 @@ AudioBuffers audioBuffers;
 static void* fillPlaybackQueue(void* ptr);
 static void* flushRecordQueue(void* ptr);
 
+static int checkDevice(int);
 static void clearAllQueues(void);
 static void bufferPlaybackQueue(lfqueue_t*);
 
@@ -118,12 +118,24 @@ static _Bool stopStats = false;
 /**
  * This must be called once, and before Audio_start() is called.
  */
-void Audio_init() {
-    // Still possible to initialize twice if multiple threads call
-    // this at the same time. Maybe make this thread-safe if it's
-    // worth the effort?
+void Audio_init(int deviceIndex) {
+    // It's still possible to initialize twice if multiple threads call
+    // this simultaneously. Make this thread-safe if it's worth the effort?
     if (initialized) {
         return;
+    }
+
+    PaError result = Pa_Initialize();
+
+    if (result != paNoError) {
+        fprintf(stderr, "[FATAL] Audio_init: Pa_Initialize failed.\n");
+        exit(1);
+    }
+
+    if (checkDevice(deviceIndex) == 0) {
+        fprintf(stderr, "[FATAL] Audio_init: invalid device index %d.\n", deviceIndex);
+        Pa_Terminate();
+        exit(1);
     }
 
     stopRecording = false;
@@ -142,22 +154,15 @@ void Audio_init() {
     audioBuffers.freeBuffers = freeBuffers;
     audioBuffers.freeNodes = freeNodes;
 
-    PaError result = Pa_Initialize();
+    const PaDeviceInfo* deviceInfo = Pa_GetDeviceInfo(deviceIndex);
 
-    if (result != paNoError) {
-        fprintf(stderr, "[FATAL] Audio_init: Pa_Initialize failed.\n");
-        exit(1);
-    }
-
-    const PaDeviceInfo* deviceInfo = Pa_GetDeviceInfo(AUDIO_DEVICE_IDX);
-
-    inputParams.device = AUDIO_DEVICE_IDX;
+    inputParams.device = deviceIndex;
     inputParams.channelCount = MONO;
     inputParams.sampleFormat = PA_SAMPLE_TYPE;
     inputParams.suggestedLatency = deviceInfo->defaultHighInputLatency;
     inputParams.hostApiSpecificStreamInfo = NULL;
 
-    outputParams.device = AUDIO_DEVICE_IDX;
+    outputParams.device = deviceIndex;
     outputParams.channelCount = MONO;
     outputParams.sampleFormat = PA_SAMPLE_TYPE;
     outputParams.suggestedLatency = deviceInfo->defaultHighOutputLatency;
@@ -317,9 +322,19 @@ AudioResult Audio_stop() {
     return AUDIO_OK;
 }
 
+static int checkDevice(PaDeviceIndex idx) {
+    const PaDeviceInfo* info = Pa_GetDeviceInfo(idx);
+
+    if (info == NULL) {
+        return 0;
+    }
+
+    return 1;
+}
+
 static void bufferPlaybackQueue(lfqueue_t* queue) {
     // Busy wait for queue to exceed minimum playback time.
-    // This is in terms of frame units, not time.
+    // This is in terms of frame buffers, not time.
     while (lfqueue_size(queue) < MIN_PLAYBACK_QUEUE_LENGTH) {
         ;
     }
