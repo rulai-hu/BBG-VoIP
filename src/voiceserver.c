@@ -56,7 +56,7 @@ void VoiceServer_stop() {
     }
 }
 
-void* acceptConnections(void* ptr) {
+static void* acceptConnections(void* ptr) {
     int tcpSocket;
     struct sockaddr_in peerAddr;
 
@@ -91,5 +91,5 @@ void* acceptConnections(void* ptr) {
         handleIncomingCall(&callerAddr, &connection);
     }
 
-    pthread_exit(NULL);
+    return NULL;
 }

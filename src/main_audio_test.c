@@ -9,7 +9,7 @@
 
 static PinkNoise noise;
 
-static AudioCallbackResult consumer(FrameBuffer buf, const size_t sz) {
+static AudioCallbackResult consumer(FrameBuffer buf, const size_t sz, void* callData) {
     Sample max = 0;
     const size_t numFrames = sz/sizeof(Sample);
 
@@ -35,7 +35,7 @@ static AudioCallbackResult consumer(FrameBuffer buf, const size_t sz) {
     return AUDIO_CONTINUE_RECORDING;
 }
 
-static AudioCallbackResult producer(FrameBuffer buf, const size_t sz) {
+static AudioCallbackResult producer(FrameBuffer buf, const size_t sz, void* callData) {
     for (unsigned i = 0; i < (sz/sizeof(Sample)); i++) {
         buf[i] = (Sample)(GeneratePinkNoise(&noise) * 32600.0 * 0.3);
     }
@@ -50,7 +50,7 @@ int main(void) {
     Audio_init();
 
     printf("Producing and consuming audio for 5 secs...\n");
-    int res = Audio_start(producer, consumer);
+    int res = Audio_start(producer, consumer, NULL);
 
     if (res != AUDIO_OK) {
         printf("Unable to start audio.\n");

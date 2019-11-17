@@ -11,6 +11,7 @@
 #define PORT 5060
 
 int Connection_create(Connection* conn, Address* addr) {
+    // conn->thread = NULL;
     conn->socket = socket(AF_INET, SOCK_STREAM, 0);
 
     if (conn->socket < 0) {
@@ -35,11 +36,12 @@ int Connection_create(Connection* conn, Address* addr) {
     return CONNECTION_OK;
 }
 
-void Connection_close() {
-
+void Connection_close(Connection* conn) {
+    close(conn->socket);
 }
 
 void Connection_reject(Connection* conn) {
+    // Send OOB data to peer indicating that the other side hung up first.
     close(conn->socket);
 }
 
@@ -73,7 +75,7 @@ FileDescriptor Connection_listen() {
     res = bind(sock, (struct sockaddr *) &hostAddr, sizeof(hostAddr));
 
     if (res < 0) {
-        perror("bind failed");
+        perror("Connection_listen");
         exit(1);
     }
 
@@ -81,7 +83,7 @@ FileDescriptor Connection_listen() {
     res = listen(sock, 0);
 
     if (res < 0) {
-        perror("listen");
+        perror("Connection_listen");
         exit(1);
     }
 

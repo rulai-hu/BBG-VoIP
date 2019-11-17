@@ -11,17 +11,18 @@ typedef enum {
 } AudioCallbackResult;
 
 // Produces framebuffers for playback
-typedef AudioCallbackResult (*AudioProducer)(FrameBuffer, const size_t);
+typedef AudioCallbackResult (*AudioProducer)(FrameBuffer, const size_t, void*);
 // Consumes framebuffers produced by the audio device
-typedef AudioCallbackResult (*AudioConsumer)(FrameBuffer, const size_t);
+typedef AudioCallbackResult (*AudioConsumer)(FrameBuffer, const size_t, void*);
 
 typedef enum {
-    AUDIO_OK = 0, AUDIO_NOT_INITIALIZED, AUDIO_OPEN_STREAM_FAIL, AUDIO_START_STREAM_FAIL, AUDIO_CLOSE_STREAM_FAIL
+    AUDIO_OK = 0, AUDIO_NOT_INITIALIZED, AUDIO_OPEN_STREAM_FAIL, AUDIO_START_STREAM_FAIL, AUDIO_CLOSE_STREAM_FAIL,
+    AUDIO_ALREADY_STARTED, AUDIO_ALREADY_STOPPED
 } AudioResult;
 
 void Audio_init(void);
 void Audio_teardown(void);
-AudioResult Audio_start(AudioProducer, AudioConsumer);
+AudioResult Audio_start(AudioProducer, AudioConsumer, void*);
 AudioResult Audio_stop(void);
 
 #endif

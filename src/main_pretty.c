@@ -78,8 +78,8 @@ static void onDial(const char* name) {
 
     // poll(connection->closed, blah blah)
 
-    Call_terminate();
-    Connection_close();
+    Call_terminate(&connection);
+    Connection_close(&connection);
 
     DialService_resume();
 }
@@ -87,7 +87,7 @@ static void onDial(const char* name) {
 static void handleIncomingCall(Address* caller, Connection* conn) {
     // Prevent user from dialing out during call.
     DialService_suspend();
-    printf("Incoming call from %s. Accept [y/n]? ", caller->name);
+    printf("Incoming call from %s. Accept? [y/n] ", caller->name);
 
     while (1) {
         char ch = fgetc(stdin);
@@ -109,7 +109,7 @@ static void handleIncomingCall(Address* caller, Connection* conn) {
 
     // poll(....)
 
-    Call_terminate();
+    Call_terminate(conn);
     Connection_close();
 
     DialService_resume();

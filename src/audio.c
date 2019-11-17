@@ -105,8 +105,11 @@ static lfqueue_t* recordBufferQueue;
 static lfqueue_t* playbackBufferQueue;
 
 static _Bool initialized = false;
+static _Bool started = false;
 static _Bool stopPlayback = false;
 static _Bool stopRecording = false;
+
+void* callbackData = NULL;
 
 #ifdef DEBUG_AUDIO
 static _Bool stopStats = false;
@@ -221,11 +224,18 @@ void Audio_teardown() {
     audioBuffers.freeNodes = NULL;
 
     initialized = false;
+    started = false;
 }
 
-AudioResult Audio_start(AudioProducer receiveFrameBuffer, AudioConsumer sendFrameBuffer) {
+AudioResult Audio_start(AudioProducer receiveFrameBuffer, AudioConsumer sendFrameBuffer, void* data) {
+    if (started) {
+        return AUDIO_ALREADY_STARTED;
+    }
+
+    callbackData = data;
     stopRecording = false;
     stopPlayback = false;
+    started = true;
 
     AudioResult retval;
 
@@ -272,6 +282,10 @@ EXCEPTION:
 }
 
 AudioResult Audio_stop() {
+    if (started) {
+        return AUDIO_ALREADY_STOPPED;
+    }
+
     stopPlayback = true;
     stopRecording = true;
     pthread_join(fillPlaybackQueueThread, NULL);
@@ -280,7 +294,7 @@ AudioResult Audio_stop() {
     PaError res = Pa_CloseStream(audioStream);
 
     if (res != paNoError) {
-        fprintf(stderr, "[WARN] Failed to close stream.\n");
+        fprintf(stderr, "[WARN] Audio_stop: failed to close audio stream.\n");
         return AUDIO_CLOSE_STREAM_FAIL;
     }
 
@@ -296,6 +310,9 @@ AudioResult Audio_stop() {
         RingBuffer_count(freeBuffers), RingBuffer_count(freeNodes)
     );
 #endif
+
+    started = false;
+    callbackData = NULL;
 
     return AUDIO_OK;
 }
@@ -388,7 +405,7 @@ static void* fillPlaybackQueue(void* producer) {
     AudioCallbackResult result;
 
     while (!stopPlayback) {
-        result = produceBuffer(playbackSourceBuffer, FRAMEBUFFER_SIZE);
+        result = produceBuffer(playbackSourceBuffer, FRAMEBUFFER_SIZE, callbackData);
 
         if (result == AUDIO_STOP_PLAYBACK) {
             stopPlayback = true;
@@ -433,7 +450,7 @@ static void* flushRecordQueue(void* consumer) {
             continue;
         }
 
-        result = consumeBuffer(buffer, FRAMEBUFFER_SIZE);
+        result = consumeBuffer(buffer, FRAMEBUFFER_SIZE, callbackData);
 
         // A bad thing. This means we've run out of freeBuffers to
         // buffer microphone input, so we've forever lost perfectly
