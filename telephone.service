@@ -1,0 +1,26 @@
+# This service file for systemd manages the Tin Can Telephone service.
+#
+# SETUP INSTRUCTIONS:
+#   Copy this to /lib/systemd/system/
+#   Configure the service to run at startup: 
+#	  $ sudo systemctl enable telephone.service
+#
+#   To manually start/stop/restart/check status of the service, run one of the following:
+#	  $ sudo systemctl start telephone.service
+#	  $ sudo systemctl stop telephone.service
+#	  $ sudo systemctl restart telephone.service
+#	  $ systemctl status telephone.service
+
+[Unit]
+Description=BeagleBone Telephone through Ethernet
+
+# WARNING: Always use absolute paths, not relative paths
+[Service]
+User=root
+WorkingDirectory=/opt/DIRECTORYHERE
+ExecStart=/COMMAND/TO/RUN
+SyslogIdentifier=TinCanTelephone
+
+[Install]
+WantedBy=multi-user.target
+

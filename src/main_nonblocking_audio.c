@@ -40,6 +40,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "include/portaudio.h"
 #include "include/pa_linux_alsa.h"

@@ -1,0 +1,32 @@
+{
+    libasound_cond_supp1
+    Memcheck:Cond
+    obj:/usr/lib/arm-linux-gnueabihf/libasound.so.2.0.0
+}
+
+{
+    libasound_semctl_supp1
+    Memcheck:Param
+    semctl(IPC_GETALL, arg.array)
+    fun:__libc_do_syscall
+    fun:semctl@@GLIBC_2.4
+    obj:/usr/lib/arm-linux-gnueabihf/libasound.so.2.0.0
+}
+
+{
+    libasound_ioctl_supp1
+    Memcheck:Param
+    ioctl(generic)
+    fun:ioctl
+    obj:/usr/lib/arm-linux-gnueabihf/libasound.so.2.0.0
+}
+
+{
+    libasound_leak_supp1
+    Memcheck:Leak
+    match-leak-kinds: reachable
+    fun:calloc
+    fun:_dlerror_run
+    fun:dlopen@@GLIBC_2.4
+    fun:snd_dlopen
+}

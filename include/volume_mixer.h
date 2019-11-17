@@ -8,5 +8,5 @@ int get_new_volume();
 
 int readVoltageRawFromChannel(unsigned int channel);
 
-void set_volume(int volume);
-int reading_to_volume(int reading);
+void set_volume(long volume);
+long reading_to_volume(int reading);
