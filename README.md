@@ -41,7 +41,7 @@ SSH into the BeagleBone and run the executable:
 
 A Fritzing schematic is provided in the directory `schematic/`.
 
-![Schematic](readme-img/schematic.jpg)
+![Schematic](schematic/schematic.png)
 
 To edit the Fritzing file, download [Fritzing](https://fritzing.org/download/).
 
