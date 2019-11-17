@@ -44,10 +44,19 @@ static AudioCallbackResult producer(FrameBuffer buf, const size_t sz, void* call
     return AUDIO_CONTINUE_PLAYBACK;
 }
 
-int main(void) {
+int main(int argc, char* argv[]) {
+    if (argc == 1) {
+        fprintf(stderr, "Please provide the audio device index as the first and only argument.\n");
+        return 1;
+    }
+
+    int audioDeviceIndex = atoi(argv[1]);
+
+    printf("Audio I/O will be bound to device %d.\n", audioDeviceIndex);
+
     InitializePinkNoise(&noise, 12);
 
-    Audio_init();
+    Audio_init(audioDeviceIndex);
 
     printf("Producing and consuming audio for 5 secs...\n");
     int res = Audio_start(producer, consumer, NULL);
