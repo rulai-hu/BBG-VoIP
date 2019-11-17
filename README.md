@@ -4,9 +4,18 @@ BeagleBone and ZenCape program which connects two devices over remote communicat
 
 ![Project image](readme-img/board.jpg)
 
+## Detailed Overview
+
 This project uses [PortAudio](http://www.portaudio.com/) for recording sound and [Advanced Linux Sound Architecture (ALSA)](https://alsa-project.org/) for playing and managing sound through a wired USB headset.
 
 The volume is controlled by turning the potentiometer on the ZenCape.
+
+**Hardware components:**
+  * Beaglebone Green
+  * ZenCape
+  * Wired USB headset
+  * [12-digit keypad](https://www.rpelectronics.com/12key-12-key-keypad-common-ground.html)
+  * Potentiometer
 
 **Creators:** Rulai Hu, Bryce Haley, Paymon Jalali, Jeffrey Leung
 
