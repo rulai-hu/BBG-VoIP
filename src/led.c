@@ -13,6 +13,8 @@
 
 static const char *GPIO[] = {"26", "46", "47"};
 
+static FILE* openFile(const char* path, const char* symbol);
+
 void LED_init(void)
 {
 	FILE *file;
@@ -49,30 +51,98 @@ void LED_init(void)
 	nanosleep((const struct timespec[]){{0, 100000000L}}, NULL);
 }
 
-static void LED_flash(int gpio)
+static void LED_flash(int colourIdx)
 {
 	return;
 }
 
-static void LED_on(int gpio)
+static void LED_on(int colourIdx)
 {
-	return;
+	//printf("%s\n", GPIO[RED]);
+	int charWritten = 99;
+	char buffer[BUFFER_SIZE] = "";
+	strcpy(buffer, GPIO_DIR "gpio");
+	strcat(buffer, GPIO[colourIdx]);
+	strcat(buffer, "/value");
+
+	FILE* LEDPointer = openFile(buffer, "w");
+	charWritten = fprintf(LEDPointer, "1");
+	if (charWritten <= 0)
+    { 
+		printf("ERROR WRITING DATA");
+		exit(1);
+	}
+
+	fclose(LEDPointer);
 }
 
-static void LED_off(int gpio)
+static void LED_off(int colourIdx)
 {
+	int charWritten = 99;
+	char buffer[BUFFER_SIZE] = "";
+	strcpy(buffer, GPIO_DIR "gpio");
+	strcat(buffer, GPIO[colourIdx]);
+	strcat(buffer, "/value");
 
+	FILE* LEDPointer = openFile(buffer, "w");
+	charWritten = fprintf(LEDPointer, "0");
+	if (charWritten <= 0)
+    { 
+		printf("ERROR WRITING DATA");
+		exit(1);
+	}
+
+	fclose(LEDPointer);
 }
-/*
-void LED_red_flash(void);
-void LED_red_on(void);
-void LED_red_off(void);
 
-void LED_blu_flash(void);
-void LED_blu_on(void);
-void LED_blu_off(void);
+void LED_red_flash(void)
+{
+	LED_flash(RED);
+}
+void LED_red_on(void)
+{
+	LED_on(RED);
+}
+void LED_red_off(void)
+{
+	LED_off(RED);
+}
 
-void LED_yel_flash(void);
-void LED_yel_on(void);
-void LED_yel_off(void);
-*/
+
+void LED_blu_flash(void)
+{
+	LED_flash(BLUE);
+}
+void LED_blu_on(void)
+{
+	LED_on(BLUE);
+}
+void LED_blu_off(void)
+{
+	LED_off(BLUE);
+}
+
+void LED_yel_flash(void)
+{
+	LED_flash(YELLOW);
+}
+void LED_yel_on(void)
+{
+	LED_on(YELLOW);
+}
+void LED_yel_off(void)
+{
+	LED_off(YELLOW);
+}
+
+
+static FILE* openFile(const char* path, const char* symbol) {
+	FILE* filePointer  = fopen(path, symbol);
+
+	if (filePointer == NULL)
+       	{
+		printf("ERROR OPENING %s.", path);
+		exit(1);
+	}
+	return filePointer; 
+}

@@ -10,5 +10,16 @@
 int main()
 {
 	LED_init();
-	sleep(1);
+	sleep(3);
+	LED_red_on();
+	sleep(3);
+	LED_red_off();
+	sleep(3);
+	LED_blu_on();
+	sleep(3);
+	LED_blu_off();
+	sleep(3);
+	LED_yel_on();
+	sleep(3);
+	LED_yel_off();
 }
