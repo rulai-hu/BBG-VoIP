@@ -19,7 +19,4 @@ int main()
 	sleep(3);
 	LED_blu_off();
 	sleep(3);
-	LED_yel_on();
-	sleep(3);
-	LED_yel_off();
 }

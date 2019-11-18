@@ -4,14 +4,13 @@
 #include <time.h>
 #include <unistd.h>
 
-#define YELLOW 0
-#define RED 1
-#define BLUE 2
+#define RED 0
+#define BLUE 1
 #define GPIO_DIR "/sys/class/gpio/"
-#define NUM_LIGHTS 3
+#define NUM_LIGHTS 2
 #define BUFFER_SIZE 256
 
-static const char *GPIO[] = {"26", "46", "47"};
+static const char *GPIO[] = {"46", "26"};
 
 static FILE* openFile(const char* path, const char* symbol);
 
@@ -51,10 +50,6 @@ void LED_init(void)
 	nanosleep((const struct timespec[]){{0, 100000000L}}, NULL);
 }
 
-static void LED_flash(int colourIdx)
-{
-	return;
-}
 
 static void LED_on(int colourIdx)
 {
@@ -95,10 +90,6 @@ static void LED_off(int colourIdx)
 	fclose(LEDPointer);
 }
 
-void LED_red_flash(void)
-{
-	LED_flash(RED);
-}
 void LED_red_on(void)
 {
 	LED_on(RED);
@@ -108,11 +99,6 @@ void LED_red_off(void)
 	LED_off(RED);
 }
 
-
-void LED_blu_flash(void)
-{
-	LED_flash(BLUE);
-}
 void LED_blu_on(void)
 {
 	LED_on(BLUE);
@@ -122,18 +108,7 @@ void LED_blu_off(void)
 	LED_off(BLUE);
 }
 
-void LED_yel_flash(void)
-{
-	LED_flash(YELLOW);
-}
-void LED_yel_on(void)
-{
-	LED_on(YELLOW);
-}
-void LED_yel_off(void)
-{
-	LED_off(YELLOW);
-}
+
 
 
 static FILE* openFile(const char* path, const char* symbol) {
