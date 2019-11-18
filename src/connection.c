@@ -4,42 +4,63 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
 
 #include "include/addressbook.h"
+
 #include "include/connection.h"
 
 #define PORT 5060
 
-int Connection_create(Connection* conn, Address* addr) {
+ConnectionResult Connection_create(Connection* conn, Address* addr) {
+    // conn->thread = NULL;
+    
+    // Create a new socket
     conn->socket = socket(AF_INET, SOCK_STREAM, 0);
-
     if (conn->socket < 0) {
-        perror("Connection_create");
+        perror("Connection_create failed to create a new socket.");
         return CONNECTION_SOCKET_FAIL;
     }
 
+    // Prepare the connection data container
     memset(&conn->sourceHost, 0, sizeof(conn->sourceHost));
     conn->sourceHost.sin_family = AF_INET;
     conn->sourceHost.sin_port = htons(PORT);
     conn->sourceHost.sin_addr = addr->_in_addr;
 
-    int res = connect(conn->socket, (struct sockaddr *) &conn->sourceHost, sizeof(conn->sourceHost));
+    // Connect!
+    int res = connect(
+        conn->socket,
+        (struct sockaddr *) &conn->sourceHost,
+        sizeof(conn->sourceHost)
+    );
 
-    // Should handle EISCONN, ENETUNREACH, ECONNREFUSED cases separately
-    // instead of bundling them together into an unhelpful error number.
+    // Error handling
+    switch (res) {
+        case EISCONN:
+            perror("Connection_create: The socket is already connected.");
+            return CONNECTION_CONNECT_FAIL;
+        case ENETUNREACH:
+            perror("Connection_create: The network could not be reached.");
+            return CONNECTION_CONNECT_FAIL;
+        case ECONNREFUSED:
+            perror("Connection_create: No listener was available to connect to.");
+            return CONNECTION_CONNECT_FAIL;
+    }
     if (res < 0) {
-        perror("Connection_create");
+        perror("Connection_create: Internal Server Error. Please check the logs.");
         return CONNECTION_CONNECT_FAIL;
     }
 
     return CONNECTION_OK;
 }
 
-void Connection_close() {
-
+void Connection_close(Connection* conn) {
+    close(conn->socket);
 }
 
 void Connection_reject(Connection* conn) {
+    // Send OOB data to peer indicating that the other side hung up first.
     close(conn->socket);
 }
 
@@ -73,7 +94,7 @@ FileDescriptor Connection_listen() {
     res = bind(sock, (struct sockaddr *) &hostAddr, sizeof(hostAddr));
 
     if (res < 0) {
-        perror("bind failed");
+        perror("Connection_listen");
         exit(1);
     }
 
@@ -81,7 +102,7 @@ FileDescriptor Connection_listen() {
     res = listen(sock, 0);
 
     if (res < 0) {
-        perror("listen");
+        perror("Connection_listen");
         exit(1);
     }
 

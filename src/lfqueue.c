@@ -69,7 +69,7 @@ static void __lfq_recycle_free(lfqueue_t *, lfqueue_cas_node_t*);
 static void __lfq_check_free(lfqueue_t *);
 static void *_dequeue(lfqueue_t *);
 static void *_single_dequeue(lfqueue_t *);
-static int _enqueue(lfqueue_t *, void* );
+static int _enqueue(lfqueue_t *, const void* );
 static inline void* _lfqueue_malloc(void* pl, size_t sz) {
 	return malloc(sz);
 }
@@ -149,14 +149,14 @@ _single_dequeue(lfqueue_t *lfqueue) {
 }
 
 static int
-_enqueue(lfqueue_t *lfqueue, void* value) {
+_enqueue(lfqueue_t *lfqueue, const void* value) {
 	lfqueue_cas_node_t *tail, *node;
 	node = (lfqueue_cas_node_t*) lfqueue->_malloc(lfqueue->pl, sizeof(lfqueue_cas_node_t));
 	if (node == NULL) {
 		perror("malloc");
 		return errno;
 	}
-	node->value = value;
+	node->value = (void*)value;
 	node->next = NULL;
 	node->nextfree = NULL;
 	for (;;) {
@@ -266,7 +266,7 @@ lfqueue_destroy(lfqueue_t *lfqueue) {
 }
 
 int
-lfqueue_enq(lfqueue_t *lfqueue, void *value) {
+lfqueue_enq(lfqueue_t *lfqueue, const void *value) {
 	if (_enqueue(lfqueue, value)) {
 		return -1;
 	}

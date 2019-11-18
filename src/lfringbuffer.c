@@ -32,7 +32,7 @@ int RingBuffer_enqueue(RingBuffer* buffer, void *value)
     while (1) {
         readPointer = __atomic_load_n(&buffer->readPointer, __ATOMIC_SEQ_CST);
         writePointer = __atomic_load_n(&buffer->writePointer, __ATOMIC_SEQ_CST);
-        if (writePointer - readPointer >= buffer->size) {
+        if ((unsigned) (writePointer - readPointer) >= buffer->size) {
             return 0;
         }
 
