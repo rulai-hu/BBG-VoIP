@@ -8,7 +8,11 @@
 // Proof of concept. In a larger project, we would be building connections
 // to many different servers!
 static Address lookupTable[] = {
-    {"localhost", "127.0.0.1"}
+    {"localhost", "127.0.0.1"},
+    {"jeff", "10.0.0.10"},
+    {"rulai", "10.0.0.20"},
+    {"bryce", "10.0.0.30"},
+    {"paymon", "10.0.0.40"},
 };
 
 #define TABLE_SIZE (sizeof(lookupTable) / sizeof(Address))

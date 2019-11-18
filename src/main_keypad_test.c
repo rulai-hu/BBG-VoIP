@@ -13,6 +13,8 @@ int main()
 	char * str = KEYPAD_getDial();
 
 	printf("\nNumber entered: %s\n", str);
+	free(str);
+
 	sleep(1);
 	return 0;
 }

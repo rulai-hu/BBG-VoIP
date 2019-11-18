@@ -20,7 +20,7 @@ typedef enum {
     AUDIO_ALREADY_STARTED, AUDIO_ALREADY_STOPPED
 } AudioResult;
 
-void Audio_init(void);
+void Audio_init(int);
 void Audio_teardown(void);
 AudioResult Audio_start(AudioProducer, AudioConsumer, void*);
 AudioResult Audio_stop(void);
