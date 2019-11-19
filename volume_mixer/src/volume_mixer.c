@@ -37,8 +37,8 @@ void volume_cleanup()
     stoppingI2C = true;
 	pthread_join(i2cThreadID, NULL);
 
+    disableDigits();
     closeI2cBus();
-
 }
 
 void* volumeThread()
@@ -114,7 +114,7 @@ void set_volume(long volume)
     snd_mixer_close(handle);
 }
 
-void main()
+int main()
 {
     printf("Starting mixer\n");
     volume_init();
@@ -122,4 +122,5 @@ void main()
     while (true) {
         ;
     }
+    return 0;
 }
