@@ -7,6 +7,8 @@
 #include <errno.h>
 #include <limits.h>
 
+#include "../include/keypad.h"
+
 #define DELAY_NS 100000000L // 100ms in 
 #define BUFFER_SIZE 256
 #define NUM_GPIO 12
@@ -16,15 +18,28 @@
 static bool stop = false;
 static bool printFlag = true;
 
-static const char *GPIO[] = {"71", "70", "75", "77",  "76", "79", "78", "80", "8", "81", "9", "11"};
-static const char KEYS[] = {'3', '6', '9', '#', '2', '5', '8', '0', '1', '4', '7', '*'};
+static const long SECOND_NS = 1000000000L;
+
+static const char *GPIO[] = {
+		"71", "70", "75",
+		"77", "76", "79",
+		"78", "80", "8",
+		"34", "33", "32"
+};
+
+static const char KEYS[] = {
+		'3', '6', '9',
+		'#', '2', '5',
+		'8', '0', '1',
+		'4', '7', '*'
+};
 
 void KEYPAD_init(void)
 {
 	FILE *file;
 	char buffer[BUFFER_SIZE] = "";
 
-	//export GPIO pins
+	// Export GPIO pins
 	for (int i = 0; i < NUM_GPIO; i++) 
 	{
 		file = fopen((GPIO_BASE_DIR "export"), "w");
@@ -37,8 +52,10 @@ void KEYPAD_init(void)
 		fclose(file);
 	}
 	sleep(1);
+
 	//nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);//sleep here ensures files get updated before access
-	//Set directions as in
+
+	// Set GPIO directions to be input
 	for(int i = 0; i < NUM_GPIO; ++i) 
 	{
 		strcpy(buffer, GPIO_BASE_DIR "gpio");
@@ -46,15 +63,16 @@ void KEYPAD_init(void)
 		strcat(buffer, "/direction");
 
 		file = fopen(buffer, "w");
-
 		if (file == NULL) {
-			printf("failed to set GPIO pin %s", GPIO[i]);
+			printf("Keypad: Failed to set GPIO pin %s.", GPIO[i]);
 		}
 
 		fprintf(file, "%s", "in");
 		fclose(file);
 	}
-	nanosleep((const struct timespec[]){{0, 100000000L}}, NULL);//sleep here ensures files get updated before access
+
+	// Ensure that files get updated before access
+	nanosleep((const struct timespec[]){{0, SECOND_NS/10L}}, NULL);//sleep here ensures files get updated before access
 }
 
 
@@ -64,14 +82,13 @@ const char * KEYPAD_getDial(void)
 	char buffer[BUFFER_SIZE];
 	char result[BUFFER_SIZE];
 	char input[BUFFER_SIZE] = "";
-	//input = "";
 	int iter = 0;
 
 	printf("\nPlease enter the number you wish to dial(# to enter):\n\t");
 
 	while(!stop)
 	{
-		//sleep a 20th of a second
+		// Sleep a 20th of a second
 		nanosleep((const struct timespec[]){{0, 50000000L}}, NULL);
 		for(int i = 0; i < NUM_GPIO -1; ++i) 
 		{
@@ -135,10 +152,10 @@ const char * KEYPAD_getDial(void)
 	if(iter == 0)
 	{
 		sprintf(ret_string, "-1");
-	} else {
-    	sprintf(ret_string, "%s", input);
-    	//printf("sending input = %s\n", ret_string);
-
-		return(ret_string);
 	}
+
+	sprintf(ret_string, "%s", input);
+	//printf("sending input = %s\n", ret_string);
+
+	return(ret_string);
 }
