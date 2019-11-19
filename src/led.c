@@ -31,7 +31,7 @@ void LED_init(void)
 		fclose(file);
 	}
 
-	nanosleep((const struct timespec[]){{0, 300000000L}}, NULL);//sleep here ensures files get updated before access
+	sleep(1);
 	//Set directions as in
 	for(int i = 0; i < NUM_LIGHTS; ++i) {
 		strcpy(buffer, GPIO_DIR "gpio");
@@ -47,7 +47,7 @@ void LED_init(void)
 		fprintf(file, "%s", "out");
 		fclose(file);
 	}
-	nanosleep((const struct timespec[]){{0, 100000000L}}, NULL);
+	nanosleep((const struct timespec[]){{0, 5000000L}}, NULL);
 }
 
 
