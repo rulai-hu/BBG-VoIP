@@ -25,7 +25,8 @@ void KEYPAD_init(void)
 	char buffer[BUFFER_SIZE] = "";
 
 	//export GPIO pins
-	for (int i = 0; i < NUM_GPIO; i++) {
+	for (int i = 0; i < NUM_GPIO; i++) 
+	{
 		file = fopen((GPIO_BASE_DIR "export"), "w");
 
 		if (file == NULL) {
@@ -35,10 +36,11 @@ void KEYPAD_init(void)
 		fprintf(file, "%s", GPIO[i]);
 		fclose(file);
 	}
-
-	nanosleep((const struct timespec[]){{0, 300000000L}}, NULL);//sleep here ensures files get updated before access
+	sleep(1);
+	//nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);//sleep here ensures files get updated before access
 	//Set directions as in
-	for(int i = 0; i < NUM_GPIO; ++i) {
+	for(int i = 0; i < NUM_GPIO; ++i) 
+	{
 		strcpy(buffer, GPIO_BASE_DIR "gpio");
 		strcat(buffer, GPIO[i]);
 		strcat(buffer, "/direction");
@@ -126,12 +128,14 @@ const char * KEYPAD_getDial(void)
 		}
 	}
 	//printf("sending input = %s\n", input);
+	
+	char * ret_string;
+    ret_string = malloc(sizeof(char) * DIAL_LENGTH);
+	
 	if(iter == 0)
 	{
-		return "-1";
+		sprintf(ret_string, "-1");
 	} else {
-		char * ret_string;
-    	ret_string = malloc(sizeof(char) * DIAL_LENGTH);
     	sprintf(ret_string, "%s", input);
     	//printf("sending input = %s\n", ret_string);
 
