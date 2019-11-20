@@ -17,6 +17,6 @@ void KEYPAD_init(void);
 //
 // Only guaranteed to return correct input when only 1 key is pressed.
 // Results may vary if multiple keys are pressed simultaneously.
-const char * KEYPAD_getDial(void);
+char * KEYPAD_getDial(void);
 
 #endif

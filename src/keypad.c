@@ -76,7 +76,7 @@ void KEYPAD_init(void)
 }
 
 
-const char * KEYPAD_getDial(void)
+char * KEYPAD_getDial(void)
 {
 	FILE *file;
 	char buffer[BUFFER_SIZE];
