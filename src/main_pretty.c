@@ -88,7 +88,7 @@ static void onDial(const char* name) {
     }
 
     printf("Hanging up in 5 seconds...\n");
-    sleep(10);
+    sleep(500);
 
     // poll(connection->closed, blah blah)
 
@@ -100,7 +100,7 @@ static void onDial(const char* name) {
 
 static void handleIncomingCall(Address* caller, Connection* conn) {
     // Prevent user from dialing out during call.
-    // DialService_suspend();
+    DialService_suspend();
     printf("Incoming call from %s. Accept? [y/n] ", caller->name);
 
     while (1) {
@@ -131,5 +131,5 @@ static void handleIncomingCall(Address* caller, Connection* conn) {
     Call_terminate(conn);
     Connection_close(conn);
 
-    // DialService_resume();
+    DialService_resume();
 }

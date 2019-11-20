@@ -162,7 +162,7 @@ void Audio_init(int deviceIndex) {
     inputParams.suggestedLatency = deviceInfo->defaultHighInputLatency;
     inputParams.hostApiSpecificStreamInfo = NULL;
 
-    outputParams.device = deviceIndex;
+    outputParams.device = 0;
     outputParams.channelCount = MONO;
     outputParams.sampleFormat = PA_SAMPLE_TYPE;
     outputParams.suggestedLatency = deviceInfo->defaultHighOutputLatency;
@@ -360,33 +360,34 @@ static int streamCallback(const void* inputBuffer, void* outputBuffer, unsigned 
 
     UNUSED(timeInfo);
     UNUSED(statusFlags);
+    unsigned int i;
 
     AudioBuffers* buffers = (AudioBuffers*) userData;
 
-    FrameBuffer playbackBuffer = lfqueue_single_deq(buffers->playbackBufferQueue);
-    FrameBuffer playbackBufferBase = playbackBuffer;
+    if (outputBuffer != NULL) {
+        FrameBuffer playbackBuffer = lfqueue_single_deq(buffers->playbackBufferQueue);
+        FrameBuffer playbackBufferBase = playbackBuffer;
 
-    // Write audio data to output buffer to be played.
-    // Doesn't contain anything meaningful right now.
-    FrameBuffer writePtr = (FrameBuffer) outputBuffer;
+        // Write audio data to output buffer to be played.
+        // Doesn't contain anything meaningful right now.
+        FrameBuffer writePtr = (FrameBuffer) outputBuffer;
+
+        if (playbackBuffer == NULL) {
+            for (i = 0; i < frameCount; i++) {
+                *writePtr++ = SILENCE;
+            }
+        } else {
+            for (i = 0; i < frameCount; i++) {
+                *writePtr++ = *playbackBuffer++;
+            }
+
+            // Place the consumed buffer back into the pool to be reused.
+            RingBuffer_enqueue(buffers->freeBuffers, playbackBufferBase);
+        }
+    }
 
     // Contains audio-in data
     FrameBuffer readPtr = (FrameBuffer) inputBuffer;
-
-    unsigned int i;
-
-    if (playbackBuffer == NULL) {
-        for (i = 0; i < frameCount; i++) {
-            *writePtr++ = SILENCE;
-        }
-    } else {
-        for (i = 0; i < frameCount; i++) {
-            *writePtr++ = *playbackBuffer++;
-        }
-
-        // Place the consumed buffer back into the pool to be reused.
-        RingBuffer_enqueue(buffers->freeBuffers, playbackBufferBase);
-    }
 
     FrameBuffer recordBuffer = RingBuffer_dequeue(buffers->freeBuffers);
     FrameBuffer recordBufferBase = recordBuffer;
