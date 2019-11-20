@@ -3,7 +3,7 @@ HEADERS = \
 	include/volume_mixer.h \
 	include/file.h \
 	include/gpio.h \
-	include/i2c.h \
+	include/i2c.h
 
 # C files
 CODE = \
@@ -45,7 +45,7 @@ LFLAGS = -lm -L$(HOME)/cmpt433/public/asound_lib_BBB -lasound -lpthread
 all: volume_mixer systemd
 systemd:
 	cp volume_mixer.service $(OUTPUT_DIR)
-volume_mixer: $(OBJECTS)
+volume_mixer:
 	$(COMPILER) $(CODE) $(HEADERS) $(GCCLINKERFLAGS) -o $(OUTPUT) $(LFLAGS)
 	cp $(OUTPUT) $(OUTPUT_DIR)
 	@echo "Program generated at: $(OUTPUT_DIR)$(OUTPUT)"

@@ -7,6 +7,13 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <math.h>
+#include <signal.h>
+
+static volatile int keepRunning = 1;
+
+void intHandler(int dummy) {
+    keepRunning = 0;
+}
 
 static const char *VOLTAGE_FILE = "/sys/bus/iio/devices/iio:device0/in_voltage%d_raw";
 static const int BUFFER_MAX_LEN = 1024;
@@ -55,7 +62,7 @@ void* volumeThread()
 void* i2cThread()
 {
 	while (!stoppingI2C) {
-        writeTwoDigitsToI2cRegister(currentVolume, 5000000);
+        writeTwoDigitsToI2cRegister(currentVolume, 7000000);
 	}
 
 	return NULL;
@@ -118,9 +125,9 @@ int main()
 {
     printf("Starting mixer\n");
     volume_init();
+    signal(SIGINT, intHandler);
 
-    while (true) {
-        ;
-    }
+    while (keepRunning) ;
+    volume_cleanup();
     return 0;
 }

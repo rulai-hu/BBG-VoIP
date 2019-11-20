@@ -119,44 +119,44 @@ void writeDigitToI2cRegister(unsigned int digit) {
   // Set to values which display a digit
   switch (digit) {
     case 0:
-      upper = 0x87;
-      lower = 0xa1;
+      upper = 0x86;
+      lower = 0xA1;
       break;
     case 1:
-      upper = 0x21;
-      lower = 0x04;
+      upper = 0x02;
+      lower = 0x80;
       break;
     case 2:
-      upper = 0x0F;
+      upper = 0x0E;
       lower = 0x31;
       break;
     case 3:
-      upper = 0x07;
-      lower = 0xb0;
+      upper = 0x0E;
+      lower = 0xB0;
       break;
     case 4:
-      upper = 0x8b;
+      upper = 0x8A;
       lower = 0x90;
       break;
     case 5:
-      upper = 0x8c;
-      lower = 0xb0;
+      upper = 0x8C;
+      lower = 0xB0;
       break;
     case 6:
-      upper = 0x8c;
-      lower = 0xb1;
+      upper = 0x8C;
+      lower = 0xB1;
       break;
     case 7:
-      upper = 0x15;
-      lower = 0x04;
+      upper = 0x06;
+      lower = 0x80;
       break;
     case 8:
-      upper = 0x8f;
-      lower = 0xb1;
+      upper = 0x8E;
+      lower = 0xB1;
       break;
     case 9:
     default:
-      upper = 0x8f;
+      upper = 0x8E;
       lower = 0x90;
   }
 
