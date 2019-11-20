@@ -89,12 +89,16 @@ device_info:
 	cp device_info $(OUTPUT_DIR)
 
 volume_mixer:
-	$(COMPILER) src/volume_mixer.c src/file.c include/volume_mixer.h include/file.h $(GCCLINKERFLAGS) -o volume_mixer $(LFLAGS) -lpthread -lasound
+	$(COMPILER) src/volume_mixer.c src/file.c src/gpio.c src/i2c.c include/volume_mixer.h include/file.h include/gpio.h include/i2c.h $(GCCLINKERFLAGS) -o volume_mixer $(LFLAGS) -lpthread -lasound
 	cp volume_mixer $(OUTPUT_DIR)
 
 key_test:
 	$(COMPILER) src/main_keypad_test.c src/keypad.c include/keypad.h $(GCCLINKERFLAGS) -o keypad $(LFLAGS) 
 	cp keypad $(OUTPUT_DIR)
+
+led_test:
+	$(COMPILER) src/main_led.c src/led.c include/led.h $(GCCLINKERFLAGS) -o led_test  
+	mv led_test $(OUTPUT_DIR)
 
 # $ make memchk
 memchk: $(OBJECTS)

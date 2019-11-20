@@ -1,24 +1,38 @@
 #include "../include/volume_mixer.h"
 #include "../include/file.h"
+#include "../include/i2c.h"
 
 #include <alsa/asoundlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <pthread.h>
 #include <math.h>
+#include <signal.h>
+
+static volatile int keepRunning = 1;
+
+void intHandler(int dummy) {
+    keepRunning = 0;
+}
 
 static const char *VOLTAGE_FILE = "/sys/bus/iio/devices/iio:device0/in_voltage%d_raw";
 static const int BUFFER_MAX_LEN = 1024;
 
-int currentVolume;
+long currentVolume = 0;
 // Volume threading
 void* volumeThread();
 static _Bool stopping = false;
 static pthread_t volumeThreadID;
 
+void* i2cThread();
+static _Bool stoppingI2C = false;
+static pthread_t i2cThreadID;
+
 void volume_init()
 {
+    initializeI2cBus();
     pthread_create(&volumeThreadID, NULL, volumeThread, NULL);
+    pthread_create(&i2cThreadID, NULL, i2cThread, NULL);
 }
 
 void volume_cleanup()
@@ -27,6 +41,11 @@ void volume_cleanup()
 	stopping = true;
 	pthread_join(volumeThreadID, NULL);
 
+    stoppingI2C = true;
+	pthread_join(i2cThreadID, NULL);
+
+    disableDigits();
+    closeI2cBus();
 }
 
 void* volumeThread()
@@ -35,6 +54,15 @@ void* volumeThread()
         int reading = readVoltageRawFromChannel(0);
         long volume = reading_to_volume(reading);
         set_volume(volume);
+	}
+
+	return NULL;
+}
+
+void* i2cThread()
+{
+	while (!stoppingI2C) {
+        writeTwoDigitsToI2cRegister(currentVolume, 7000000);
 	}
 
 	return NULL;
@@ -88,16 +116,18 @@ void set_volume(long volume)
 
     snd_mixer_selem_get_playback_volume_range(elem, &min, &max);
     snd_mixer_selem_set_playback_volume_all(elem, volume * max / 100);
+    currentVolume = volume;
 
     snd_mixer_close(handle);
 }
 
-void main()
+int main()
 {
     printf("Starting mixer\n");
     volume_init();
+    signal(SIGINT, intHandler);
 
-    while (true) {
-        ;
-    }
+    while (keepRunning) ;
+    volume_cleanup();
+    return 0;
 }

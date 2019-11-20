@@ -35,23 +35,29 @@ void DialService_suspend() {
 
     serviceSuspended = 1;
 
+    // Attempt to cancel thread
     pthread_mutex_lock(&callMutex);
     int res = pthread_cancel(dialServiceThread);
     pthread_mutex_unlock(&callMutex);
 
     if (res != 0) {
-        fprintf(stderr, "[WARN] DialService_suspend: pthread_cancel failed, thread doesn't exist.\n");
+        fprintf(
+            stderr,
+            "[WARN] DialService_suspend: " \
+            "pthread_cancel failed, thread doesn't exist.\n"
+        );
     }
 
     void* exitResult;
-
     pthread_join(dialServiceThread, &exitResult);
 
     if (exitResult == PTHREAD_CANCELED) {
-
         printf("[INFO] DialService_suspend: DialService suspended.\n");
     } else {
-        fprintf(stderr, "[WARN] DialService_suspend: unable to suspend DialService..\n");
+        fprintf(
+            stderr,
+            "[WARN] DialService_suspend: unable to suspend DialService..\n"
+        );
     }
 }
 
@@ -118,12 +124,13 @@ static void* getInput(void* ptr) {
             // }
         }
 
-        // remove trailing newline from inputBuffer
+        // Remove trailing newline from inputBuffer
         char* pos;
         if ((pos = strchr(localBuffer, '\n')) != NULL) {
             *pos = '\0';
         }
 
+        // Run Event Handler method with completed dial input
         pthread_mutex_lock(&callMutex);
         memcpy(inputBuffer, localBuffer, sizeof(inputBuffer));
         dialEventHandler(inputBuffer);

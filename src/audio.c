@@ -65,6 +65,7 @@
 // 1 sec playback time. Multiply by a constant n to get n secs.
 #define MIN_PLAYBACK_QUEUE_LENGTH ((unsigned) SAMPLE_RATE / FRAMES_PER_BUFFER)
 
+// Container for audio file queue
 typedef struct {
     lfqueue_t* recordBufferQueue;
     lfqueue_t* playbackBufferQueue;

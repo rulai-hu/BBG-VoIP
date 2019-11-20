@@ -1,0 +1,21 @@
+# Sample service file for systemd
+# copy this to /lib/systemd/system/
+# Run at startup: 
+#	systemctl enable foo.service
+#	(replace enable with: start, stop, restart)
+# Status:
+#	systemctl status foo.service
+#	systemctl | grep html 
+
+[Unit]
+Description=Volume Mixer Controlled by Potentiometer
+
+[Service]
+User=root
+WorkingDirectory=/opt/10-VolumeMixer
+ExecStart=/opt/10-VolumeMixer/volume_mixer
+SyslogIdentifier=VolumeMixer
+
+[Install]
+WantedBy=multi-user.target
+
