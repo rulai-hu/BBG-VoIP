@@ -1,3 +1,5 @@
+// This C module manages a socket connection on port 5060 to send/receive data.
+
 #ifndef CONNECTION_H
 #define CONNECTION_H
 
