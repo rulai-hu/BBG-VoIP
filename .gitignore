@@ -58,3 +58,4 @@ dkms.conf
 
 # Project-specific files
 tincanphone
+volume_mixer/volume_mixer
