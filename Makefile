@@ -5,7 +5,7 @@ HEADERS = \
 	include/lfqueue.h \
 	include/pink.h \
 	include/portaudio.h \
-	include/pa_linux_alsa.h 
+	include/pa_linux_alsa.h
 
 # Object files
 OBJECTS = \
@@ -49,7 +49,7 @@ all: $(OBJECTS)
 	@echo "Program generated at: $(OUTPUT_DIR)$(OUTPUT)"
 
 pretty:
-	$(COMPILER) src/main_pretty.c src/dialservice.c src/voiceserver.c src/addressbook.c src/call.c src/connection.c src/audio.c src/lfqueue.c src/lfringbuffer.c libportaudio.a -I$(CURDIR) -g -std=c99 -D _POSIX_C_SOURCE=200809L -o pretty $(LFLAGS)
+	$(COMPILER) src/pink.c src/main_pretty.c src/dialservice.c src/voiceserver.c src/addressbook.c src/call.c src/connection.c src/audio.c src/lfqueue.c src/lfringbuffer.c libportaudio.a -I$(CURDIR) -g -std=c99 -D _POSIX_C_SOURCE=200809L -o pretty $(LFLAGS)
 	mv pretty $(OUTPUT_DIR)
 
 call:
@@ -93,11 +93,11 @@ volume_mixer:
 	cp volume_mixer $(OUTPUT_DIR)
 
 key_test:
-	$(COMPILER) src/main_keypad_test.c src/keypad.c include/keypad.h $(GCCLINKERFLAGS) -o keypad $(LFLAGS) 
+	$(COMPILER) src/main_keypad_test.c src/keypad.c include/keypad.h $(GCCLINKERFLAGS) -o keypad $(LFLAGS)
 	cp keypad $(OUTPUT_DIR)
 
 led_test:
-	$(COMPILER) src/main_led.c src/led.c include/led.h $(GCCLINKERFLAGS) -o led_test  
+	$(COMPILER) src/main_led.c src/led.c include/led.h $(GCCLINKERFLAGS) -o led_test
 	mv led_test $(OUTPUT_DIR)
 
 # $ make memchk
