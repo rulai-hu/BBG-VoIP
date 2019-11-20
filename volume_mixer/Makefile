@@ -6,11 +6,11 @@ HEADERS = \
 	include/i2c.h
 
 # C files
-CODE = \
-	src/volume_mixer.c \
-	src/file.c \
-	src/gpio.c \
-	src/i2c.c
+OBJECTS = \
+	volume_mixer.o \
+	file.o \
+	gpio.o \
+	i2c.o
 
 # Compiler
 COMPILER = arm-linux-gnueabihf-gcc
@@ -24,7 +24,7 @@ GCCLINKERFLAGS = -pthread
 OUTPUT = volume_mixer
 OUTPUT_DIR = $(HOME)/cmpt433/public/myApps/
 
-LFLAGS = -lm -L$(HOME)/cmpt433/public/asound_lib_BBB -lasound -lpthread
+LFLAGS = -L$(HOME)/cmpt433/public/asound_lib_BBB
 
 #####
 ###
@@ -39,14 +39,14 @@ LFLAGS = -lm -L$(HOME)/cmpt433/public/asound_lib_BBB -lasound -lpthread
 #   % refers to any character(s)
 #   $< refers to the first item in the dependency list
 %.o: src/%.c $(HEADERS)
-	$(COMPILER) $(GCCFLAGS) $<
+	$(COMPILER) $(GCCFLAGS) $< $(LFLAGS)
 
 # $ make all
 all: volume_mixer systemd
 systemd:
 	cp volume_mixer.service $(OUTPUT_DIR)
-volume_mixer:
-	$(COMPILER) $(CODE) $(HEADERS) $(GCCLINKERFLAGS) -o $(OUTPUT) $(LFLAGS)
+volume_mixer: $(OBJECTS)
+	$(COMPILER) $(OBJECTS) $(GCCLINKERFLAGS) -o $(OUTPUT) $(LFLAGS) -lpthread -lasound
 	cp $(OUTPUT) $(OUTPUT_DIR)
 	@echo "Program generated at: $(OUTPUT_DIR)$(OUTPUT)"
 
