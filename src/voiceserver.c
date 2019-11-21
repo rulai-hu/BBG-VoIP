@@ -14,9 +14,9 @@ static pthread_t voiceServerThread;
 
 static void* acceptConnections(void*);
 
-int listenSocket;
-int stop = 0;
-IncomingCallEventHandler handleIncomingCall;
+static int listenSocket;
+static int stop = 0;
+static IncomingCallEventHandler handleIncomingCall;
 
 void VoiceServer_start(IncomingCallEventHandler callback) {
     stop = 0;

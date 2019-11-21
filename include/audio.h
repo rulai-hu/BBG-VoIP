@@ -15,7 +15,7 @@ typedef Sample* FrameBuffer;
 #define FRAMEBUFFER_SIZE    FRAMES_PER_BUFFER * sizeof(Sample) // valid for ONE channel
 
 // 1 sec playback time. Multiply by a constant n to get n secs.
-#define MIN_PLAYBACK_QUEUE_LENGTH ((unsigned) SAMPLE_RATE / (FRAMES_PER_BUFFER * 4))
+#define MIN_PLAYBACK_QUEUE_LENGTH ((unsigned) 20)
 
 // Enum types for actions from the function callbacks
 typedef enum {
@@ -28,6 +28,8 @@ typedef AudioCallbackResult (*AudioProducer)(FrameBuffer, const size_t, void*);
 
 // Function type which consumes framebuffers produced by the audio device.
 typedef AudioCallbackResult (*AudioConsumer)(FrameBuffer, const size_t, void*);
+
+typedef void (*AudioGenerator)(FrameBuffer);
 
 // Enum types for actions from the functions
 typedef enum {
@@ -60,5 +62,7 @@ AudioResult Audio_stop(void);
 
 // This function clears the audio buffers and frees allocated resources.
 void Audio_teardown(void);
+
+void Audio_playBuffers(AudioGenerator, int);
 
 #endif

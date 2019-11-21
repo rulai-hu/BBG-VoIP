@@ -11,13 +11,12 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
-// #include <errno.h>
 #include <poll.h>
 
 #include "include/connection.h"
 #include "include/audio.h"
+#include "include/trek.h"
 #include "include/call.h"
-// #include "include/pink.h"
 
 static const Sample totalSilence[FRAMES_PER_BUFFER] = { [0 ... (FRAMES_PER_BUFFER - 1)] = SILENCE };
 // static PinkNoise noise;
@@ -46,6 +45,8 @@ CallResult Call_begin(Connection* conn) {
         printf("Call rejected.\n");
         return CALL_FAIL;
     }
+
+    Trek_play(conn);
 
     printf("Handshake success, call accepted.\n");
 
@@ -153,10 +154,6 @@ static void* beginCall(void* ptr) {
 
 static AudioCallbackResult sendDatagram(FrameBuffer buffer, const size_t bufferSize, void* data) {
     Connection* connection = (Connection*) data;
-
-    // for (unsigned i = 0; i < (bufferSize/sizeof(Sample)); i++) {
-    //     buffer[i] = (Sample)(GeneratePinkNoise(&noise) * 32600.0 * 0.3);
-    // }
 
     // send() will block in non-blocking mode on STREAM_SOCK if only a partial packet is sent.
     ssize_t bytesSent = send(connection->socket, buffer, bufferSize, 0);
