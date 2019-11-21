@@ -8,7 +8,14 @@
 
 // #define CALL_THREADS_MAX 10
 
-int Call_begin(Connection*);
+typedef enum {
+    CALL_START = 0, CALL_FAIL, CALL_ACCEPT, CALL_REJECT
+} CallResult;
+
+CallResult Call_begin(Connection*);
 void Call_terminate(Connection*);
+
+void Call_accept(Connection*);
+void Call_reject(Connection*);
 
 #endif
