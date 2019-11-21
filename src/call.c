@@ -136,21 +136,24 @@ static AudioCallbackResult sendDatagram(FrameBuffer buffer, const size_t bufferS
 
     // send() will block in non-blocking mode on STREAM_SOCK if only a partial packet is sent.
     ssize_t bytesSent = send(connection->socket, buffer, bufferSize, 0);
+    ssize_t totalBytesSent = bytesSent;
 
-    if (bytesSent < 0) {
-        shutdown(connection->socket, SHUT_RDWR);
-        // setError(errno);
-        return AUDIO_STOP_RECORDING;
+    // send() can send out partial frames.
+    while (bytesSent < bufferSize) {
+        if (bytesSent < 0) {
+            shutdown(connection->socket, SHUT_RDWR);
+            // setError(errno);
+            return AUDIO_STOP_RECORDING;
+        }
+
+        bytesSent = send(connection->socket, buffer + totalBytesSent, bufferSize - totalBytesSent, 0);
+        totalBytesSent += bytesSent;
     }
 
-    printf("Send\n");
+    printf("Sent %ld bytes\n", (long)totalBytesSent);
 
     return AUDIO_CONTINUE_RECORDING;
 
-    // send() can send out partial frames.
-    // while (bytesSent < bufferSize) {
-    //     bytesSent += send(connection->socket, buffer + bytesSent, bufferSize - bytesSent, 0);
-    // }
 }
 
 static AudioCallbackResult receiveDatagram(FrameBuffer buffer, const size_t bufferSize, void* data) {
@@ -167,7 +170,7 @@ static AudioCallbackResult receiveDatagram(FrameBuffer buffer, const size_t buff
         totalBytesReceived += bytesReceived;
     }
 
-    // printf("Recv\n");
+    printf("Recv %ld bytes\n", (long)totalBytesReceived);
 
     return AUDIO_CONTINUE_PLAYBACK;
 }

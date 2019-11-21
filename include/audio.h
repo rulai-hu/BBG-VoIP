@@ -35,19 +35,19 @@ typedef enum {
 
 // This function initializes the devices and structures required for audio.
 // Must be called before any of the functions below.
-void Audio_init(int);
+void Audio_init(int, int);
 
 // This function creates new threads which begin playing and recording audio.
 //
 // If init() has not been called, AUDIO_NOT_INITIALIZED will be returned.
-// If audio has already been started previously, 
+// If audio has already been started previously,
 //   AUDIO_ALREADY_STARTED will be returned.
 AudioResult Audio_start(AudioProducer, AudioConsumer, void*);
 
 // This function stops the threads which are playing and recording audio.
 //
 // If init() has not been called, AUDIO_NOT_INITIALIZED will be returned.
-// If audio has not been started or has been stopped previously, 
+// If audio has not been started or has been stopped previously,
 //   AUDIO_ALREADY_STOPPED will be returned.
 AudioResult Audio_stop(void);
 

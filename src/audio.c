@@ -119,7 +119,7 @@ static _Bool stopStats = false;
 /**
  * This must be called once, and before Audio_start() is called.
  */
-void Audio_init(int deviceIndex) {
+void Audio_init(int inputDevice, int outputDevice) {
     // It's still possible to initialize twice if multiple threads call
     // this simultaneously. Make this thread-safe if it's worth the effort?
     if (initialized) {
@@ -133,8 +133,14 @@ void Audio_init(int deviceIndex) {
         exit(1);
     }
 
-    if (checkDevice(deviceIndex) == 0) {
-        fprintf(stderr, "[FATAL] Audio_init: invalid device index %d.\n", deviceIndex);
+    if (checkDevice(inputDevice) == 0) {
+        fprintf(stderr, "[FATAL] Audio_init: invalid input device index %d.\n", inputDevice);
+        Pa_Terminate();
+        exit(1);
+    }
+
+    if (checkDevice(outputDevice) == 0) {
+        fprintf(stderr, "[FATAL] Audio_init: invalid output device index %d.\n", outputDevice);
         Pa_Terminate();
         exit(1);
     }
@@ -155,18 +161,20 @@ void Audio_init(int deviceIndex) {
     audioBuffers.freeBuffers = freeBuffers;
     audioBuffers.freeNodes = freeNodes;
 
-    const PaDeviceInfo* deviceInfo = Pa_GetDeviceInfo(deviceIndex);
+    const PaDeviceInfo* inputDeviceInfo = Pa_GetDeviceInfo(inputDevice);
 
-    inputParams.device = deviceIndex;
+    inputParams.device = inputDevice;
     inputParams.channelCount = MONO;
     inputParams.sampleFormat = PA_SAMPLE_TYPE;
-    inputParams.suggestedLatency = deviceInfo->defaultHighInputLatency;
+    inputParams.suggestedLatency = inputDeviceInfo->defaultHighInputLatency;
     inputParams.hostApiSpecificStreamInfo = NULL;
 
-    outputParams.device = 0;
+    const PaDeviceInfo* outputDeviceInfo = Pa_GetDeviceInfo(outputDevice);
+
+    outputParams.device = outputDevice;
     outputParams.channelCount = MONO;
     outputParams.sampleFormat = PA_SAMPLE_TYPE;
-    outputParams.suggestedLatency = deviceInfo->defaultHighOutputLatency;
+    outputParams.suggestedLatency = outputDeviceInfo->defaultHighOutputLatency;
     outputParams.hostApiSpecificStreamInfo = NULL;
 
     // Note: not a thread safe way of going about this.
@@ -201,8 +209,6 @@ void Audio_teardown() {
     printf("Freed nodes=%d\n", cnt);
 #endif
 
-    RingBuffer_destroy(freeNodes);
-
     // Free all frame buffers.
     FrameBuffer buf;
     cnt = 0;
@@ -216,6 +222,7 @@ void Audio_teardown() {
 #endif
 
     RingBuffer_destroy(freeBuffers);
+    RingBuffer_destroy(freeNodes);
 
     // Set the buffer / queue pointers to NULL
     recordBufferQueue = NULL;
