@@ -14,7 +14,7 @@ typedef enum {
 
 // Container for all necessary values of the caller's address
 typedef struct {
-    const char name[64];
+    const char name[32];
     const char inetAddress[INET_ADDRSTRLEN];
     struct in_addr _in_addr; // This field *must* be the output of inet_pton
 } Address;

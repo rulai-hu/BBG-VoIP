@@ -9,10 +9,11 @@
 
 #include "../include/keypad.h"
 
+
 #define DELAY_NS 100000000L // 100ms in 
 #define BUFFER_SIZE 256
 #define NUM_GPIO 12
-#define DIAL_LENGTH 12
+#define DIAL_LENGTH 15
 #define GPIO_BASE_DIR "/sys/class/gpio/"
 
 static bool stop = false;
@@ -51,7 +52,7 @@ void KEYPAD_init(void)
 		fprintf(file, "%s", GPIO[i]);
 		fclose(file);
 	}
-	sleep(1);
+	sleep(2);
 
 	//nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);//sleep here ensures files get updated before access
 
@@ -72,7 +73,7 @@ void KEYPAD_init(void)
 	}
 
 	// Ensure that files get updated before access
-	nanosleep((const struct timespec[]){{0, SECOND_NS/10L}}, NULL);//sleep here ensures files get updated before access
+	
 	
 }
 
@@ -85,7 +86,7 @@ char * KEYPAD_getDial(void)
 	char input[BUFFER_SIZE] = "";
 	int iter = 0;
 
-	printf("\nPlease enter the number you wish to dial(# to enter):\n\t");
+	printf("\nOn the bbg keypad, please enter the number you wish to dial(# to enter):\n\t");
 
 	while(!stop)
 	{
@@ -118,14 +119,26 @@ char * KEYPAD_getDial(void)
 				fgets(result, BUFFER_SIZE, file);
 				fclose(file);
 
-				if(i == 3)
+				while(i == 3)
 				{
 					stop = true;
-					printf("\n");
-					break;
+					//wait for # to be unpressed
+					file = fopen(buffer, "r");
+					if (file == NULL) 
+					{
+						printf("failed read %s", GPIO[i]);
+					}
+					fgets(result, BUFFER_SIZE, file);
+					fclose(file);
+					if(result[0] == '0') 
+					{ 
+						printf("\n");
+						break;
+					}
+					nanosleep((const struct timespec[]){{0, 50000000L}}, NULL);
 				}
 
-				if(printFlag)
+				if(printFlag && i != 3)
 				{
 					// input = keys
 
@@ -138,7 +151,6 @@ char * KEYPAD_getDial(void)
 					if(iter == DIAL_LENGTH)
 					{
 						stop = true;
-						printf("\n");
 						break;
 					}
 				}
@@ -146,6 +158,7 @@ char * KEYPAD_getDial(void)
 		}
 	}
 	//printf("sending input = %s\n", input);
+	stop = false;
 	
 	char * ret_string;
     ret_string = malloc(sizeof(char) * DIAL_LENGTH);

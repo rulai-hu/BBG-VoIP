@@ -9,7 +9,8 @@
 #include "include/connection.h"
 #include "include/audio.h"
 #include "include/call.h"
-#include "include/keypad.h"
+#include "../include/keypad.h"
+#include "../include/led.h"
 
 static void onDial(const char*);
 static void handleIncomingCall(Address*, Connection*);
@@ -63,8 +64,9 @@ signalNumber);
 static void onDial(const char* name) {
     Address dest;
     AddressLookupResult lookupResult = AddressBook_lookup(name, &dest);
+  //  printf("\nDo you want to use the keypad? (y/n)\n");
 
-    char * ipAddr = KEYPAD_getDial();
+//    char * ipAddr = KEYPAD_getDial();
 
     if (lookupResult != ADDRESS_FOUND) {
         printf("Address not found for '%s'.\n", name);

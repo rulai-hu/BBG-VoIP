@@ -2,11 +2,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
+#include <stdbool.h>
 
 #include "include/dialservice.h"
+#include "../include/addressbook.h"
+#include "include/keypad.h"
 
 #define INPUT_BUFFER_LENGTH 32
 
+static void* getKeypadInput(void*);
+static void startKeypadThread(void);
 static void* getInput(void*);
 static void startThread(void);
 
@@ -17,13 +23,26 @@ static char inputBuffer[INPUT_BUFFER_LENGTH];
 static int serviceSuspended;
 static int stop = 0;
 static DialEventHandler dialEventHandler;
+static const long SECOND_NS = 1000000000L;
 
 void DialService_start(DialEventHandler callback) {
     stop = 0;
     serviceSuspended = 0;
     dialEventHandler = callback;
-
-    startThread();
+    
+        char ch = 'z';
+    while (1) {
+        printf("\nDo you want to use the keypad to dial? (y/n):\n");
+        ch = fgetc(stdin);
+        nanosleep((const struct timespec[]){{0, SECOND_NS/10L}}, NULL);
+        if (ch == 'y' || ch == 'Y') {
+            startKeypadThread();
+            break;
+        } else if (ch == 'n' || ch == 'N') {
+            startThread();
+            break;
+        } 
+    }
 
     printf("DialService started.\n");
 }
@@ -138,4 +157,39 @@ static void* getInput(void* ptr) {
     }
 
     pthread_exit(NULL);
+}
+static void startKeypadThread()
+{
+     printf("inkeypad fcn\n");   
+    int res = pthread_create(&dialServiceThread, NULL, getKeypadInput, NULL);
+
+    if (res != 0) 
+    {
+        fprintf(stderr, "DialService: pthread_create failed.\n");
+        exit(1);
+    } 
+}
+
+static void* getKeypadInput(void* ptr)
+{   
+    printf("in keypad Thread\n");
+    bool NameFound = false;
+    Address dest;
+    while(!NameFound)
+    {
+        char * ipAddr = KEYPAD_getDial();
+
+        AddressLookupResult lookupResult = AddressBook_reverseLookup(ipAddr, &dest);
+        if (lookupResult == NAME_FOUND)
+        {
+            NameFound = true;
+        } else {
+            printf("ip address not found.\n");
+        }
+    }
+
+    pthread_mutex_lock(&callMutex);
+    memcpy(inputBuffer, dest.name, sizeof(dest.name));
+    dialEventHandler(inputBuffer);
+    pthread_mutex_unlock(&callMutex);
 }
