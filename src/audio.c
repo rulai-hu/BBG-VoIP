@@ -47,7 +47,7 @@
 #include "include/lfqueue.h"
 #include "include/audio.h"
 
-#define DEBUG_AUDIO
+// #define DEBUG_AUDIO
 
 #define UNUSED(x) (void)(x)
 
@@ -106,14 +106,26 @@ static _Bool started = false;
 static _Bool stopPlayback = false;
 static _Bool stopRecording = false;
 
-void* callbackData = NULL;
+static void* callbackData = NULL;
 
 #ifdef DEBUG_AUDIO
 static _Bool stopStats = false;
 #endif
 
+void Audio_playBuffers(AudioGenerator producer, int numBuffers) {
+    Sample buf[FRAMES_PER_BUFFER];
+    Pa_OpenStream(&audioStream, &inputParams, &outputParams, SAMPLE_RATE, FRAMES_PER_BUFFER, paClipOff, NULL, NULL);
+    for (int i = 0; i < numBuffers; i++) {
+        producer(buf);
+
+        Pa_WriteStream(audioStream, buf, FRAMES_PER_BUFFER);
+    }
+
+    Pa_CloseStream(audioStream);
+}
+
 /**
- * This must be called once, and before Audio_start() is called.
+ * This must be called before Audio_start() is called.
  */
 void Audio_init(int inputDevice, int outputDevice) {
     // It's still possible to initialize twice if multiple threads call

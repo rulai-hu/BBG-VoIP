@@ -47,8 +47,7 @@ int main(int argc, char* argv[]) {
     DialService_start(onDial);
 
     // Wait for SIGINT to arrive.
-    sigwait(&signalSet, &
-signalNumber);
+    sigwait(&signalSet, &signalNumber);
 
     printf("\nSIGINT received by main thread. Stopping program...\n");
 
@@ -103,9 +102,10 @@ static void onDial(const char* name) {
     while (((read(0, &ch, 1) == 1) ? (unsigned char) ch : EOF) != EOF) {
         printf("Unrecognized command.\n");
     }
+
     LED_blu_off();
     Call_terminate(&connection);
-    Connection_close(&connection);
+    // Connection_close(&connection);
 }
 
 static void handleIncomingCall(Address* caller, Connection* conn) {
@@ -139,10 +139,11 @@ static void handleIncomingCall(Address* caller, Connection* conn) {
     while (((read(0, &ch, 1) == 1) ? (unsigned char) ch : EOF) != EOF) {
         printf("Unrecognized command.\n");
     }
+
     LED_red_off();
     LED_blu_off();
     Call_terminate(conn);
-    Connection_close(conn);
+    // Connection_close(conn);
 
     DialService_resume();
 }
