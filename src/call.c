@@ -47,6 +47,8 @@ CallResult Call_begin(Connection* conn) {
         return CALL_FAIL;
     }
 
+    printf("Handshake success, call accepted.\n");
+
     createCallThread(conn);
     // printf("Created thread=%lu\n", conn->thread);
     // void* retval;

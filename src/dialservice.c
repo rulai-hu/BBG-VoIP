@@ -43,7 +43,7 @@ void DialService_suspend() {
     if (res != 0) {
         fprintf(
             stderr,
-            "[WARN] DialService_suspend: " \
+            "\n[WARN] DialService_suspend: " \
             "pthread_cancel failed, thread doesn't exist.\n"
         );
     }
@@ -52,11 +52,11 @@ void DialService_suspend() {
     pthread_join(dialServiceThread, &exitResult);
 
     if (exitResult == PTHREAD_CANCELED) {
-        printf("[INFO] DialService_suspend: DialService suspended.\n");
+        printf("\n[INFO] DialService suspended.\n");
     } else {
         fprintf(
             stderr,
-            "[WARN] DialService_suspend: unable to suspend DialService..\n"
+            "\n[WARN] Unable to suspend DialService.\n"
         );
     }
 }
@@ -71,7 +71,7 @@ void DialService_resume() {
     while ((ch = fgetc(stdin)) != EOF && ch != '\n') {}
     serviceSuspended = 0;
     startThread();
-    printf("[INFO] DialService resumed.\n");
+    printf("\n[INFO] DialService resumed.\n");
 }
 
 void DialService_stop() {
