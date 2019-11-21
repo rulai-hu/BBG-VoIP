@@ -122,6 +122,36 @@ Are you experiencing:
 * A whole bunch of runtime errors such as `ALSA lib pcm.c:2495:(snd_pcm_open_noupdate) Unknown PCM surround71`?
   * Make sure the default `alsa.conf` is overwritten with the one provided and the errors will go away.
 
+## Volume Mixer Service
+
+The volume mixer is a standalone application that controls the volume of the PCM channel of the board with the potentiometer on the Zen Cape, and displays the current volume of the board on the 14-seg display. The steps to get the volume mixer running on the BeagleBone are as follows:
+
+The following assumptions are made: NFS drive has been configured to map to `~/cmpt433/myApps` on the host, and the audio cape and i2c pins have been properly configured.
+
+Lines starting with `$` are meant to be run on the host.  
+Lines starting with `#` are meant to be run on the target.
+
+Enter the project directory, and compile it:
+
+```shell
+$ cd cmpt-433-project/volume_mixer
+$ make
+```
+
+After compiling the application, the make command will copy it to the target via the NFS folder along with the `volume_mixer.service` file.
+
+Now, we can configure the application on the target. First, connect to the target via ssh or screen, and mount the NFS drive then do the following:
+
+```
+# sudo mkdir /opt/10-VolumeMixer/
+# sudo cp /mnt/remote/myApps/volume_mixer /opt/10-VolumeMixer/
+# sudo cp volume_mixer.service /lib/systemd/system/
+# sudo systemctl enable volume_mixer.service
+# sudo systemctl start volume_mixer.service
+```
+
+The Volume Mixer has now been enabled via systemd, and will start on boot.
+
 ## System Overview
 
 See a map of the system here:
