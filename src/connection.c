@@ -14,7 +14,7 @@
 
 ConnectionResult Connection_create(Connection* conn, Address* addr) {
     // conn->thread = NULL;
-    
+
     // Create a new socket
     conn->socket = socket(AF_INET, SOCK_STREAM, 0);
     if (conn->socket < 0) {
@@ -61,7 +61,7 @@ void Connection_close(Connection* conn) {
 
 void Connection_reject(Connection* conn) {
     // Send OOB data to peer indicating that the other side hung up first.
-    close(conn->socket);
+    // close(conn->socket);
 }
 
 FileDescriptor Connection_listen() {

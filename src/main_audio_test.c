@@ -30,9 +30,9 @@ static AudioCallbackResult consumer(FrameBuffer buf, const size_t sz, void* call
     memset(barsBuf, '\0', 50);
     memset(barsBuf, '|', numBars);
 
-    printf("%s\n", barsBuf);
+    // printf("%s\n", barsBuf);
 
-    return AUDIO_CONTINUE_RECORDING;
+    return AUDIO_CONTINUE;
 }
 
 static AudioCallbackResult producer(FrameBuffer buf, const size_t sz, void* callData) {
@@ -41,22 +41,23 @@ static AudioCallbackResult producer(FrameBuffer buf, const size_t sz, void* call
     }
 
     nanosleep((const struct timespec[]){{0, 11610000 + (rand() % 100000)}}, NULL);
-    return AUDIO_CONTINUE_PLAYBACK;
+    return AUDIO_CONTINUE;
 }
 
 int main(int argc, char* argv[]) {
-    if (argc == 1) {
+    if (argc < 3) {
         fprintf(stderr, "Please provide the audio device index as the first and only argument.\n");
         return 1;
     }
 
-    int audioDeviceIndex = atoi(argv[1]);
+    int inpDevice = atoi(argv[1]);
+    int outDevice = atoi(argv[2]);
 
-    printf("Audio I/O will be bound to device %d.\n", audioDeviceIndex);
+    printf("Audio I/O will be bound to input device %d, output device %d.\n", inpDevice, outDevice);
 
     InitializePinkNoise(&noise, 12);
 
-    Audio_init(audioDeviceIndex);
+    Audio_init(inpDevice, outDevice);
 
     printf("Producing and consuming audio for 5 secs...\n");
     int res = Audio_start(producer, consumer, NULL);
@@ -65,8 +66,9 @@ int main(int argc, char* argv[]) {
         printf("Unable to start audio.\n");
         return 1;
     }
+
     printf("Audio started...\n");
-    sleep(5);
+    sleep(20);
 
     Audio_stop();
 

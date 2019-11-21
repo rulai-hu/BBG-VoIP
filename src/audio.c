@@ -47,7 +47,7 @@
 #include "include/lfqueue.h"
 #include "include/audio.h"
 
-// #define DEBUG_AUDIO
+#define DEBUG_AUDIO
 
 #define UNUSED(x) (void)(x)
 
@@ -143,6 +143,7 @@ void Audio_init(int inputDevice, int outputDevice) {
 
     stopRecording = false;
     stopPlayback = false;
+    started = false;
 
     // Initialize resource pools
     freeBuffers = initFreeBuffers();
@@ -278,6 +279,8 @@ AudioResult Audio_start(AudioProducer receiveFrameBuffer, AudioConsumer sendFram
 
     pthread_create(&flushRecordQueueThread, NULL, flushRecordQueue, sendFrameBuffer);
 
+    started = true;
+
     return AUDIO_OK;
 
 EXCEPTION:
@@ -291,7 +294,7 @@ EXCEPTION:
 }
 
 AudioResult Audio_stop() {
-    if (started) {
+    if (!started) {
         return AUDIO_ALREADY_STOPPED;
     }
 
@@ -299,9 +302,6 @@ AudioResult Audio_stop() {
     stopRecording = true;
     pthread_join(fillPlaybackQueueThread, NULL);
     pthread_join(flushRecordQueueThread, NULL);
-#ifdef DEBUG_AUDIO
-    pthread_join(printStats, NULL);
-#endif
 
     PaError res = Pa_CloseStream(audioStream);
 

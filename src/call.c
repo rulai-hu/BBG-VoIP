@@ -28,7 +28,27 @@ static AudioCallbackResult sendDatagram(FrameBuffer, const size_t, void*);
 static void createCallThread(Connection*);
 static void* beginCall(void*);
 
-int Call_begin(Connection* conn) {
+void Call_accept(Connection* conn) {
+    int handshake = CALL_ACCEPT;
+    send(conn->socket, &handshake, sizeof(handshake), 0);
+}
+
+void Call_reject(Connection* conn) {
+    int handshake = CALL_REJECT;
+    send(conn->socket, &handshake, sizeof(handshake), 0);
+}
+
+CallResult Call_begin(Connection* conn) {
+    CallResult handshake;
+    ssize_t bytesReceived = recv(conn->socket, &handshake, sizeof(handshake), 0);
+
+    if (handshake == CALL_REJECT) {
+        printf("Call rejected.\n");
+        return CALL_FAIL;
+    }
+
+    printf("Handshake success, call accepted.\n");
+
     createCallThread(conn);
     // printf("Created thread=%lu\n", conn->thread);
     // void* retval;
@@ -39,7 +59,7 @@ int Call_begin(Connection* conn) {
     //     return 0;
     // }
 
-    return 1;
+    return CALL_START;
 }
 
 void Call_terminate(Connection* conn) {
