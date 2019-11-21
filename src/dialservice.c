@@ -112,6 +112,7 @@ void DialService_stop() {
 }
 
 static void startThread() {
+    nanosleep((const struct timespec[]){{0, SECOND_NS/10L}}, NULL);
     int res = pthread_create(&dialServiceThread, NULL, getInput, NULL);
 
     if (res != 0) {
@@ -161,7 +162,7 @@ static void* getInput(void* ptr) {
 }
 static void startKeypadThread()
 {
-     printf("inkeypad fcn\n");   
+     //printf("inkeypad fcn\n");   
     int res = pthread_create(&dialServiceThread, NULL, getKeypadInput, NULL);
 
     if (res != 0) 
@@ -173,7 +174,7 @@ static void startKeypadThread()
 
 static void* getKeypadInput(void* ptr)
 {   
-    printf("in keypad Thread\n");
+    //printf("in keypad Thread\n");
     bool NameFound = false;
     Address dest;
     while(!NameFound)
