@@ -31,25 +31,22 @@ static char* getBufferLoc(RingBuffer* ring, int i) {
     // return ring->buffer + ((i % ring->maxElements) * ring->elementSize);
 }
 
-/**
- * If the buffer is full, this will overwrite the newest element.
- */
 void RingBuffer_enqueue(RingBuffer* ring, char* elementPtr) {
     if (ring->full) {
         int idx = ring->tail - 1;
         if (idx < 0) {
             idx += ring->maxElements;
         }
-        // just overwrite the tail element, don't change anything else
+        // Overwrite the tail element, don't change anything else
         memcpy(getBufferLoc(ring, idx), elementPtr, ring->elementSize);
     } else {
-        // since the buffer has more space, we increment the tail index and
+        // Since the buffer has more space, we increment the tail index and
         // put the new element in that location.
         memcpy(getBufferLoc(ring, ring->tail), elementPtr, ring->elementSize);
         ring->tail = (ring->tail + 1) % ring->maxElements;
 
-        // the buffer is full if the next index is the head index
-        ring->full = ring->tail == ring->head;
+        // Buffer is full if the next index is the head index.
+        ring->full = (ring->tail == ring->head);
 
         ring->count++;
     }
@@ -93,9 +90,6 @@ int RingBuffer_getInt(RingBuffer* ring, int idx) {
 //     ring->count--;
 // }
 
-/**
- * Remove the OLDEST piece of data from the buffer.
- */
 int RingBuffer_dequeue(RingBuffer* ring, char* e) {
     if (ring->count == 0) {
         return 0;
