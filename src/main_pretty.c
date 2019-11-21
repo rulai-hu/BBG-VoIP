@@ -20,14 +20,15 @@ static void handleIncomingCall(Address*, Connection*);
 // }
 
 int main(int argc, char* argv[]) {
-    if (argc == 1) {
-        fprintf(stderr, "Please provide the audio device index as the first and only argument.\n");
+    if (argc < 3) {
+        fprintf(stderr, "Please provide the input audio device index, then output device index.\n");
         return 1;
     }
 
-    int audioDeviceIndex = atoi(argv[1]);
+    int inputDeviceIndex = atoi(argv[1]);
+    int outputDeviceIndex = atoi(argv[2]);
 
-    printf("Audio I/O will be bound to device %d. Press Ctrl-C to quit.\n", audioDeviceIndex);
+    printf("Audio input will be bound to device %d and output to device %d. Press Ctrl-C to quit.\n", inputDeviceIndex, outputDeviceIndex);
 
     // Signal handling stuff...
     sigset_t signalSet;
@@ -36,7 +37,7 @@ int main(int argc, char* argv[]) {
     sigaddset(&signalSet, SIGINT);
     pthread_sigmask(SIG_BLOCK, &signalSet, NULL);
 
-    Audio_init(audioDeviceIndex);
+    Audio_init(inputDeviceIndex, outputDeviceIndex);
 
     AddressBook_init();
     VoiceServer_start(handleIncomingCall);
@@ -49,10 +50,10 @@ int main(int argc, char* argv[]) {
 
     DialService_stop();
     VoiceServer_stop();
+    Audio_stop();
     Audio_teardown();
 
     printf("Bye.\n");
-    fflush(stdout);
 
     return 0;
 }
@@ -66,7 +67,7 @@ static void onDial(const char* name) {
         return;
     }
 
-    printf("Found host. Establishing connection to %s (%d)\n", dest.inetAddress, dest._in_addr.s_addr);
+    printf("Establishing connection to %s (%d)\n", dest.inetAddress, dest._in_addr.s_addr);
 
     Connection connection;
     ConnectionResult connResult = Connection_create(&connection, &dest);
@@ -78,24 +79,26 @@ static void onDial(const char* name) {
 
     printf("Connection established through socket %d.\n", connection.socket);
 
-    // DialService_suspend();
+    // Extend our end of the handshake.
+    Call_accept(&connection);
 
-    int callResult = Call_begin(&connection);
+    CallResult callResult = Call_begin(&connection);
 
-    if (callResult == 0) {
+    printf("Call has started. Press 'Ctrl-D' to hang up.\n");
+
+    if (callResult == CALL_FAIL) {
         fprintf(stderr, "Unable to start call with %s.\n", name);
         return;
     }
 
-    printf("Hanging up in 5 seconds...\n");
-    sleep(500);
+    char ch;
 
-    // poll(connection->closed, blah blah)
+    while (((read(0, &ch, 1) == 1) ? (unsigned char) ch : EOF) != EOF) {
+        printf("Unrecognized command.\n");
+    }
 
     Call_terminate(&connection);
     Connection_close(&connection);
-
-    // DialService_resume();
 }
 
 static void handleIncomingCall(Address* caller, Connection* conn) {
@@ -107,9 +110,10 @@ static void handleIncomingCall(Address* caller, Connection* conn) {
         char ch = fgetc(stdin);
 
         if (ch == 'y' || ch == 'Y') {
+            Call_accept(conn);
             break;
         } else if (ch == 'n' || ch == 'N') {
-            Connection_reject(conn);
+            Call_reject(conn);
             DialService_resume();
             return;
         }

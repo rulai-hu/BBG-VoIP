@@ -20,7 +20,7 @@ Connection callout;
 Connection peer;
 
 int main(void) {
-    Audio_init();
+    Audio_init(1, 1);
     AddressBook_init();
 
     // Create the socket where the program will listen for inbound
