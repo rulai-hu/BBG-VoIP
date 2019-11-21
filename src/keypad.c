@@ -24,7 +24,7 @@ static const char *GPIO[] = {
 		"71", "70", "75",
 		"77", "76", "79",
 		"78", "80", "8",
-		"34", "33", "32"
+		"81", "9", "11"
 };
 
 static const char KEYS[] = {
@@ -51,7 +51,7 @@ void KEYPAD_init(void)
 		fprintf(file, "%s", GPIO[i]);
 		fclose(file);
 	}
-	sleep(1);
+	sleep(2);
 
 	//nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);//sleep here ensures files get updated before access
 
@@ -72,7 +72,8 @@ void KEYPAD_init(void)
 	}
 
 	// Ensure that files get updated before access
-	nanosleep((const struct timespec[]){{0, SECOND_NS/10L}}, NULL);//sleep here ensures files get updated before access
+	//nanosleep((const struct timespec[]){{0, SECOND_NS/10L}}, NULL);//sleep here ensures files get updated before access
+	sleep(1);
 }
 
 
@@ -90,7 +91,7 @@ char * KEYPAD_getDial(void)
 	{
 		// Sleep a 20th of a second
 		nanosleep((const struct timespec[]){{0, 50000000L}}, NULL);
-		for(int i = 0; i < NUM_GPIO -1; ++i) 
+		for(int i = 0; i < NUM_GPIO; ++i) 
 		{
 
 			//read the value of the pins
