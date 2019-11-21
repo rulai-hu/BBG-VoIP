@@ -121,3 +121,9 @@ Are you experiencing:
 
 * A whole bunch of runtime errors such as `ALSA lib pcm.c:2495:(snd_pcm_open_noupdate) Unknown PCM surround71`?
   * Make sure the default `alsa.conf` is overwritten with the one provided and the errors will go away.
+
+## System Overview
+
+See a map of the system here:
+
+![System diagram](./system-diagram/system-diagram.svg)
