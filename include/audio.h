@@ -15,14 +15,12 @@ typedef Sample* FrameBuffer;
 #define FRAMEBUFFER_SIZE    FRAMES_PER_BUFFER * sizeof(Sample) // valid for ONE channel
 
 // 1 sec playback time. Multiply by a constant n to get n secs.
-#define MIN_PLAYBACK_QUEUE_LENGTH ((unsigned) SAMPLE_RATE / FRAMES_PER_BUFFER)
+#define MIN_PLAYBACK_QUEUE_LENGTH ((unsigned) SAMPLE_RATE / (FRAMES_PER_BUFFER * 4))
 
 // Enum types for actions from the function callbacks
 typedef enum {
-    AUDIO_CONTINUE_RECORDING = 0,
-    AUDIO_CONTINUE_PLAYBACK,
-    AUDIO_STOP_RECORDING,
-    AUDIO_STOP_PLAYBACK
+    AUDIO_CONTINUE = 0,
+    AUDIO_STOP
 } AudioCallbackResult;
 
 // Function type which produces framebuffers for playback.

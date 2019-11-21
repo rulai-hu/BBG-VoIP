@@ -17,9 +17,10 @@
 #include "include/connection.h"
 #include "include/audio.h"
 #include "include/call.h"
-#include "include/pink.h"
+// #include "include/pink.h"
 
-static PinkNoise noise;
+static const Sample totalSilence[FRAMES_PER_BUFFER] = { [0 ... (FRAMES_PER_BUFFER - 1)] = SILENCE };
+// static PinkNoise noise;
 
 static AudioCallbackResult receiveDatagram(FrameBuffer, const size_t, void*);
 static AudioCallbackResult sendDatagram(FrameBuffer, const size_t, void*);
@@ -42,7 +43,6 @@ int Call_begin(Connection* conn) {
 }
 
 void Call_terminate(Connection* conn) {
-    // close(conn->socket);
     shutdown(conn->socket, SHUT_RDWR);
     // printf("Joining thread=%lu\n", conn->thread);
     // pthread_cancel(conn->thread);
@@ -74,8 +74,12 @@ static void createCallThread(Connection* conn) {
  * Detached thread runner.
  */
 static void* beginCall(void* ptr) {
-    InitializePinkNoise(&noise, 12);
+    // InitializePinkNoise(&noise, 12);
     Connection* conn = (Connection*) ptr;
+
+    for (int i = 0; i < MIN_PLAYBACK_QUEUE_LENGTH; i++) {
+        send(conn->socket, totalSilence, FRAMEBUFFER_SIZE, 0);
+    }
 
     AudioResult result = Audio_start(receiveDatagram, sendDatagram, conn);
 
@@ -130,9 +134,9 @@ static void* beginCall(void* ptr) {
 static AudioCallbackResult sendDatagram(FrameBuffer buffer, const size_t bufferSize, void* data) {
     Connection* connection = (Connection*) data;
 
-    for (unsigned i = 0; i < (bufferSize/sizeof(Sample)); i++) {
-        buffer[i] = (Sample)(GeneratePinkNoise(&noise) * 32600.0 * 0.3);
-    }
+    // for (unsigned i = 0; i < (bufferSize/sizeof(Sample)); i++) {
+    //     buffer[i] = (Sample)(GeneratePinkNoise(&noise) * 32600.0 * 0.3);
+    // }
 
     // send() will block in non-blocking mode on STREAM_SOCK if only a partial packet is sent.
     ssize_t bytesSent = send(connection->socket, buffer, bufferSize, 0);
@@ -141,18 +145,19 @@ static AudioCallbackResult sendDatagram(FrameBuffer buffer, const size_t bufferS
     // send() can send out partial frames.
     while (bytesSent < bufferSize) {
         if (bytesSent < 0) {
-            shutdown(connection->socket, SHUT_RDWR);
+            printf("send: AUDIO_STOP\n");
+            // shutdown(connection->socket, SHUT_RDWR);
             // setError(errno);
-            return AUDIO_STOP_RECORDING;
+            return AUDIO_STOP;
         }
 
         bytesSent = send(connection->socket, buffer + totalBytesSent, bufferSize - totalBytesSent, 0);
         totalBytesSent += bytesSent;
     }
 
-    printf("Sent %ld bytes\n", (long)totalBytesSent);
+    // printf("Sent %ld bytes\n", (long)totalBytesSent);
 
-    return AUDIO_CONTINUE_RECORDING;
+    return AUDIO_CONTINUE;
 
 }
 
@@ -163,14 +168,15 @@ static AudioCallbackResult receiveDatagram(FrameBuffer buffer, const size_t buff
 
     while (totalBytesReceived < bufferSize) {
         if (bytesReceived <= 0) {
-            return AUDIO_STOP_PLAYBACK;
+            printf("recv: AUDIO_STOP\n");
+            return AUDIO_STOP;
         }
 
         bytesReceived = recv(connection->socket, buffer + totalBytesReceived, bufferSize - totalBytesReceived, 0);
         totalBytesReceived += bytesReceived;
     }
 
-    printf("Recv %ld bytes\n", (long)totalBytesReceived);
+    // printf("Recv %ld bytes\n", (long)totalBytesReceived);
 
-    return AUDIO_CONTINUE_PLAYBACK;
+    return AUDIO_CONTINUE;
 }

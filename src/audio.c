@@ -47,23 +47,16 @@
 #include "include/lfqueue.h"
 #include "include/audio.h"
 
+// #define DEBUG_AUDIO
+
 #define UNUSED(x) (void)(x)
 
 #define PA_SAMPLE_TYPE      paInt16
-#define SILENCE             0
 #define MONO                1
-
-#define FRAMES_PER_BUFFER   512
-#define SAMPLE_RATE         44100
-#define FRAME_PLAYBACK_TIME ((double) FRAMES_PER_BUFFER / SAMPLE_RATE)
-#define FRAMEBUFFER_SIZE    FRAMES_PER_BUFFER * sizeof(Sample) * MONO // 1 channel
 
 #define FREE_BUFFERS        300
 #define FREE_NODES          600
 #define AUDIO_DEVICE_IDX    1
-
-// 1 sec playback time. Multiply by a constant n to get n secs.
-#define MIN_PLAYBACK_QUEUE_LENGTH ((unsigned) SAMPLE_RATE / FRAMES_PER_BUFFER)
 
 // Container for audio file queue
 typedef struct {
@@ -75,8 +68,11 @@ typedef struct {
 
 AudioBuffers audioBuffers;
 
-static void* fillPlaybackQueue(void* ptr);
-static void* flushRecordQueue(void* ptr);
+static void* fillPlaybackQueue(void*);
+static void* flushRecordQueue(void*);
+#ifdef DEBUG_AUDIO
+static void* printStats(void*);
+#endif
 
 static int checkDevice(int);
 static void clearAllQueues(void);
@@ -256,10 +252,6 @@ AudioResult Audio_start(AudioProducer receiveFrameBuffer, AudioConsumer sendFram
         return AUDIO_NOT_INITIALIZED;
     }
 
-#ifdef DEBUG_AUDIO
-    pthread_create(&statsThread, NULL, printStats, NULL);
-#endif
-
     PaError result = Pa_OpenStream(&audioStream, &inputParams, &outputParams,
             SAMPLE_RATE, FRAMES_PER_BUFFER, paClipOff, streamCallback, &audioBuffers);
 
@@ -272,6 +264,10 @@ AudioResult Audio_start(AudioProducer receiveFrameBuffer, AudioConsumer sendFram
     pthread_create(&fillPlaybackQueueThread, NULL, fillPlaybackQueue, receiveFrameBuffer);
 
     bufferPlaybackQueue(playbackBufferQueue);
+
+#ifdef DEBUG_AUDIO
+    pthread_create(&statsThread, NULL, printStats, NULL);
+#endif
 
     result = Pa_StartStream(audioStream);
 
@@ -303,6 +299,9 @@ AudioResult Audio_stop() {
     stopRecording = true;
     pthread_join(fillPlaybackQueueThread, NULL);
     pthread_join(flushRecordQueueThread, NULL);
+#ifdef DEBUG_AUDIO
+    pthread_join(printStats, NULL);
+#endif
 
     PaError res = Pa_CloseStream(audioStream);
 
@@ -316,8 +315,7 @@ AudioResult Audio_stop() {
 #ifdef DEBUG_AUDIO
     stopStats = true;
     pthread_join(statsThread, NULL);
-    printf("==============================================================\n");
-    printf("Final stats:\n");
+    printf("======================== FINAL STATS =========================\n");
     printf("PlaybackQueue=%u, RecordQueue=%u, FreeBuffers=%u, FreeNodes=%u\n",
         lfqueue_size(playbackBufferQueue), lfqueue_size(recordBufferQueue),
         RingBuffer_count(freeBuffers), RingBuffer_count(freeNodes)
@@ -372,26 +370,24 @@ static int streamCallback(const void* inputBuffer, void* outputBuffer, unsigned 
 
     AudioBuffers* buffers = (AudioBuffers*) userData;
 
-    if (outputBuffer != NULL) {
-        FrameBuffer playbackBuffer = lfqueue_single_deq(buffers->playbackBufferQueue);
-        FrameBuffer playbackBufferBase = playbackBuffer;
+    FrameBuffer playbackBuffer = lfqueue_single_deq(buffers->playbackBufferQueue);
+    FrameBuffer playbackBufferBase = playbackBuffer;
 
-        // Write audio data to output buffer to be played.
-        // Doesn't contain anything meaningful right now.
-        FrameBuffer writePtr = (FrameBuffer) outputBuffer;
+    // Write audio data to output buffer to be played.
+    // Doesn't contain anything meaningful right now.
+    FrameBuffer writePtr = (FrameBuffer) outputBuffer;
 
-        if (playbackBuffer == NULL) {
-            for (i = 0; i < frameCount; i++) {
-                *writePtr++ = SILENCE;
-            }
-        } else {
-            for (i = 0; i < frameCount; i++) {
-                *writePtr++ = *playbackBuffer++;
-            }
-
-            // Place the consumed buffer back into the pool to be reused.
-            RingBuffer_enqueue(buffers->freeBuffers, playbackBufferBase);
+    if (playbackBuffer == NULL) {
+        for (i = 0; i < frameCount; i++) {
+            *writePtr++ = SILENCE;
         }
+    } else {
+        for (i = 0; i < frameCount; i++) {
+            *writePtr++ = *playbackBuffer++;
+        }
+
+        // Place the consumed buffer back into the pool to be reused.
+        RingBuffer_enqueue(buffers->freeBuffers, playbackBufferBase);
     }
 
     // Contains audio-in data
@@ -431,7 +427,8 @@ static void* fillPlaybackQueue(void* producer) {
     while (!stopPlayback) {
         result = produceBuffer(playbackSourceBuffer, FRAMEBUFFER_SIZE, callbackData);
 
-        if (result == AUDIO_STOP_PLAYBACK) {
+        if (result == AUDIO_STOP) {
+            printf("fillPlaybackQueue: break");
             stopPlayback = true;
             break;
         }
@@ -488,7 +485,8 @@ static void* flushRecordQueue(void* consumer) {
             RingBuffer_enqueue(freeBuffers, buffer);
         }
 
-        if (result == AUDIO_STOP_RECORDING) {
+        if (result == AUDIO_STOP) {
+            printf("flushRecordQueue: break\n");
             stopRecording = true;
             break;
         }
@@ -506,7 +504,7 @@ static void* printStats(void* ptr) {
             RingBuffer_count(freeBuffers), RingBuffer_count(freeNodes)
         );
 
-        Pa_Sleep(100);
+        Pa_Sleep(1000);
     }
 
     return NULL;
