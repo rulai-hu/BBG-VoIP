@@ -44,7 +44,7 @@ void DialService_start(DialEventHandler callback) {
         } 
     }
 
-    printf("DialService started.\n");
+    printf("[INFO] DialService_start: DialService started.\n");
 }
 
 void DialService_suspend() {
@@ -107,14 +107,14 @@ void DialService_stop() {
     //     fprintf(stderr, "Unable to join dialServiceThread.\n");
     // }
 
-    printf("DialService stopped.\n");
+    printf("[INFO] DialService_stop: DialService stopped.\n");
 }
 
 static void startThread() {
     int res = pthread_create(&dialServiceThread, NULL, getInput, NULL);
 
     if (res != 0) {
-        fprintf(stderr, "DialService: pthread_create failed.\n");
+        fprintf(stderr, "[ERROR] DialService_start: pthread_create failed.\n");
         exit(1);
     }
 }
