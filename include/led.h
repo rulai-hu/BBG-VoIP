@@ -22,4 +22,14 @@ void LED_blu_on(void);
 // Must have called LED_init() beforehand.
 void LED_blu_off(void);
 
+// This function creates a new thread which blinks the red LED steadily.
+// If the thread is already running, the function will show a message and
+// return. No error will occur.
+void LED_red_blink_start(void);
+
+// This function ends the thread which blinks the red LED.
+// If the thread is not yet running, the function will show a message and
+// return. No error will occur.
+void LED_red_blink_stop(void);
+
 #endif

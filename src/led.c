@@ -1,3 +1,5 @@
+#include <pthread.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,7 +17,13 @@ static const char *GPIO[] = {"46", "26"};
 #define NUM_LIGHTS 2
 #define BUFFER_SIZE 256
 
+#define BLINK_DURATION 100000000
+
+pthread_t blink_thread;
+_Bool blink_thread_running = false;
+
 static FILE* openFile(const char* path, const char* symbol);
+static void delay(const unsigned int nanosecs);
 
 void LED_init(void)
 {
@@ -120,4 +128,46 @@ static FILE* openFile(const char* path, const char* symbol) {
 		exit(1);
 	}
 	return filePointer;
+}
+
+static void delay(const unsigned int nanosecs) {
+  struct timespec t;
+  t.tv_sec = 0;
+  t.tv_nsec = nanosecs;
+  nanosleep(&t, NULL);
+}
+
+static void *led_red_blink_loop() {
+	while (1) {
+		LED_red_on();
+		delay(BLINK_DURATION);
+		LED_red_off();
+		delay(BLINK_DURATION);
+	}
+	return NULL;
+}
+
+void LED_red_blink_start(void) {
+	if (blink_thread_running) {
+		printf("LED: The blink thread already running.");
+		return;
+	}
+	blink_thread_running = true;
+
+	pthread_attr_t attrs;
+	pthread_attr_init(&attrs);
+	pthread_create(&blink_thread, &attrs, led_red_blink_loop, NULL);
+	pthread_attr_destroy(&attrs);
+}
+
+
+void LED_red_blink_stop(void) {
+	if (!blink_thread_running) {
+		printf("LED: Cannot stop the blink thread because it is not running.");
+		return;
+	}
+	blink_thread_running = false;
+
+	pthread_cancel(blink_thread);
+	pthread_join(blink_thread, NULL);
 }
