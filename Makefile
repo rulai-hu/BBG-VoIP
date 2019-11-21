@@ -49,7 +49,7 @@ all: $(OBJECTS)
 	@echo "Program generated at: $(OUTPUT_DIR)$(OUTPUT)"
 
 pretty:
-	$(COMPILER) src/pink.c src/main_pretty.c src/dialservice.c src/voiceserver.c src/addressbook.c src/call.c src/connection.c src/audio.c src/lfqueue.c src/lfringbuffer.c src/keypad.c libportaudio.a -I$(CURDIR) -g -std=c99 -D _POSIX_C_SOURCE=200809L -o pretty $(LFLAGS)
+	$(COMPILER) src/pink.c src/main_pretty.c src/dialservice.c src/voiceserver.c src/led.c src/addressbook.c src/call.c src/connection.c src/audio.c src/lfqueue.c src/lfringbuffer.c src/keypad.c libportaudio.a -I$(CURDIR) -g -std=c99 -D _POSIX_C_SOURCE=200809L -o pretty $(LFLAGS)
 	mv pretty $(OUTPUT_DIR)
 
 call:

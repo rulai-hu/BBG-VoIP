@@ -41,6 +41,7 @@ int main(int argc, char* argv[]) {
     KEYPAD_init();
     Audio_init(inputDeviceIndex, outputDeviceIndex);
 
+    LED_init();
     AddressBook_init();
     VoiceServer_start(handleIncomingCall);
     DialService_start(onDial);
@@ -98,11 +99,11 @@ static void onDial(const char* name) {
     }
 
     char ch;
-
+    LED_blu_on();
     while (((read(0, &ch, 1) == 1) ? (unsigned char) ch : EOF) != EOF) {
         printf("Unrecognized command.\n");
     }
-
+    LED_blu_off();
     Call_terminate(&connection);
     Connection_close(&connection);
 }
@@ -117,6 +118,7 @@ static void handleIncomingCall(Address* caller, Connection* conn) {
 
         if (ch == 'y' || ch == 'Y') {
             Call_accept(conn);
+            LED_blu_on();
             break;
         } else if (ch == 'n' || ch == 'N') {
             Call_reject(conn);
@@ -137,7 +139,8 @@ static void handleIncomingCall(Address* caller, Connection* conn) {
     while (((read(0, &ch, 1) == 1) ? (unsigned char) ch : EOF) != EOF) {
         printf("Unrecognized command.\n");
     }
-
+    LED_red_off();
+    LED_blu_off();
     Call_terminate(conn);
     Connection_close(conn);
 

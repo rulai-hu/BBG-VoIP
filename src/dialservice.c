@@ -7,6 +7,7 @@
 
 #include "include/dialservice.h"
 #include "../include/addressbook.h"
+#include "../include/led.h"
 #include "include/keypad.h"
 
 #define INPUT_BUFFER_LENGTH 32
@@ -182,9 +183,11 @@ static void* getKeypadInput(void* ptr)
         AddressLookupResult lookupResult = AddressBook_reverseLookup(ipAddr, &dest);
         if (lookupResult == NAME_FOUND)
         {
+            LED_red_off();
             NameFound = true;
         } else {
             printf("ip address not found.\n");
+            LED_red_on();
         }
     }
 
