@@ -31,7 +31,7 @@ static const char KEYS[] = {
 		'3', '6', '9',
 		'#', '2', '5',
 		'8', '0', '1',
-		'4', '7', '*'
+		'4', '7', '.'
 };
 
 void KEYPAD_init(void)
@@ -51,7 +51,7 @@ void KEYPAD_init(void)
 		fprintf(file, "%s", GPIO[i]);
 		fclose(file);
 	}
-	sleep(2);
+	sleep(1);
 
 	//nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);//sleep here ensures files get updated before access
 
@@ -72,8 +72,8 @@ void KEYPAD_init(void)
 	}
 
 	// Ensure that files get updated before access
-	//nanosleep((const struct timespec[]){{0, SECOND_NS/10L}}, NULL);//sleep here ensures files get updated before access
-	sleep(1);
+	nanosleep((const struct timespec[]){{0, SECOND_NS/10L}}, NULL);//sleep here ensures files get updated before access
+	
 }
 
 

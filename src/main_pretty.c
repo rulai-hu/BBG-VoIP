@@ -9,6 +9,7 @@
 #include "include/connection.h"
 #include "include/audio.h"
 #include "include/call.h"
+#include "include/keypad.h"
 
 static void onDial(const char*);
 static void handleIncomingCall(Address*, Connection*);
@@ -36,7 +37,7 @@ int main(int argc, char* argv[]) {
     sigemptyset(&signalSet);
     sigaddset(&signalSet, SIGINT);
     pthread_sigmask(SIG_BLOCK, &signalSet, NULL);
-
+    KEYPAD_init();
     Audio_init(inputDeviceIndex, outputDeviceIndex);
 
     AddressBook_init();
@@ -44,7 +45,8 @@ int main(int argc, char* argv[]) {
     DialService_start(onDial);
 
     // Wait for SIGINT to arrive.
-    sigwait(&signalSet, &signalNumber);
+    sigwait(&signalSet, &
+signalNumber);
 
     printf("\nSIGINT received by main thread. Stopping program...\n");
 
@@ -61,6 +63,8 @@ int main(int argc, char* argv[]) {
 static void onDial(const char* name) {
     Address dest;
     AddressLookupResult lookupResult = AddressBook_lookup(name, &dest);
+
+    char * ipAddr = KEYPAD_getDial();
 
     if (lookupResult != ADDRESS_FOUND) {
         printf("Address not found for '%s'.\n", name);
