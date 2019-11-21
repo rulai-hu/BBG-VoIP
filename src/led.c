@@ -4,13 +4,16 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "../include/led.h"
+
+// GPIO index and path of each LED
 #define RED 0
 #define BLUE 1
+static const char *GPIO[] = {"46", "26"};
 #define GPIO_DIR "/sys/class/gpio/"
+
 #define NUM_LIGHTS 2
 #define BUFFER_SIZE 256
-
-static const char *GPIO[] = {"46", "26"};
 
 static FILE* openFile(const char* path, const char* symbol);
 
@@ -19,12 +22,12 @@ void LED_init(void)
 	FILE *file;
 	char buffer[BUFFER_SIZE] = "";
 
-	//export GPIO pins
+	// Eport GPIO pins
 	for (int i = 0; i < NUM_LIGHTS; i++) {
 		file = fopen((GPIO_DIR "export"), "w");
 
 		if (file == NULL) {
-			perror("failed to open GPIO export file");
+			perror("LED: Failed to open GPIO export file");
 		}
 
 		fprintf(file, "%s", GPIO[i]);
@@ -41,7 +44,7 @@ void LED_init(void)
 		file = fopen(buffer, "w");
 
 		if (file == NULL) {
-			printf("failed to set GPIO pin %s", GPIO[i]);
+			printf("LED: Failed to set GPIO pin %s", GPIO[i]);
 		}
 
 		fprintf(file, "%s", "out");
@@ -63,8 +66,8 @@ static void LED_on(int colourIdx)
 	FILE* LEDPointer = openFile(buffer, "w");
 	charWritten = fprintf(LEDPointer, "1");
 	if (charWritten <= 0)
-    { 
-		printf("ERROR WRITING DATA");
+    {
+		printf("LED: ERROR WRITING DATA.");
 		exit(1);
 	}
 
@@ -82,8 +85,8 @@ static void LED_off(int colourIdx)
 	FILE* LEDPointer = openFile(buffer, "w");
 	charWritten = fprintf(LEDPointer, "0");
 	if (charWritten <= 0)
-    { 
-		printf("ERROR WRITING DATA");
+    {
+		printf("LED: ERROR WRITING DATA.");
 		exit(1);
 	}
 
@@ -108,16 +111,13 @@ void LED_blu_off(void)
 	LED_off(BLUE);
 }
 
-
-
-
 static FILE* openFile(const char* path, const char* symbol) {
 	FILE* filePointer  = fopen(path, symbol);
 
 	if (filePointer == NULL)
-       	{
+	{
 		printf("ERROR OPENING %s.", path);
 		exit(1);
 	}
-	return filePointer; 
+	return filePointer;
 }
