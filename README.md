@@ -59,7 +59,7 @@ iface eth0 inet static
   broadcast 0.0.0.0 
 ```
 * Either reboot the board, or restart your networking service with:
-```shell
+```
 # sudo /etc/init.d/networking restart
 ```
 * Now, the IP address should persist through reboots
