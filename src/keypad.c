@@ -71,6 +71,7 @@ void KEYPAD_init(void)
 		fprintf(file, "%s", "in");
 		fclose(file);
 	}
+	sleep(1);
 
 	// Ensure that files get updated before access
 	
