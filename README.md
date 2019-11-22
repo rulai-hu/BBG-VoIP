@@ -44,10 +44,25 @@ For your BeagleBone to communicate with other BeagleBones over ethernet, the IP 
 This can be done with
 
 ```shell
-sudo ip ad add 10.0.0.0/24 dev eth0
+# sudo ip ad add 10.0.0.0/24 dev eth0
 ```
 Replacing `10.0.0.0` with the IP address you want to be identified as.
 
+However, this IP address will not persist once the board is rebooted. To have a persistent IP do the following:
+
+* Add the following lines to the end of `/etc/network/interfaces` on the BeagleBone (replacing `10.0.0.0` with the IP address yu want to be identified as):
+```shell
+auto eth0
+iface eth0 inet static
+  address 10.0.0.0
+  netmask 255.255.255.0
+  broadcast 0.0.0.0 
+```
+* Either reboot the board, or restart your networking service with:
+```shell
+# sudo /etc/init.d/networking restart
+```
+* Now, the IP address should persist through reboots
 ### The Program
 
 Clone the GitHub repository:
