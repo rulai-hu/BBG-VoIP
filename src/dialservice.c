@@ -30,21 +30,21 @@ void DialService_start(DialEventHandler callback) {
     stop = 0;
     serviceSuspended = 0;
     dialEventHandler = callback;
-    
-        char ch = 'z';
+
+    char ch = 'z';
+
     while (1) {
-        printf("\nDo you want to use the keypad to dial? (y/n):\n");
+        printf("Do you want to use the keypad to dial? [y/n] ");
         ch = fgetc(stdin);
         nanosleep((const struct timespec[]){{0, SECOND_NS/10L}}, NULL);
         if (ch == 'y' || ch == 'Y') {
             startKeypadThread();
             break;
         } else if (ch == 'n' || ch == 'N') {
-            int ch;
             while ((ch = fgetc(stdin)) != EOF && ch != '\n') {}
             startThread();
             break;
-        } 
+        }
     }
 
     printf("[INFO] DialService_start: DialService started.\n");
@@ -58,9 +58,9 @@ void DialService_suspend() {
     serviceSuspended = 1;
 
     // Attempt to cancel thread
-    pthread_mutex_lock(&callMutex);
+    // pthread_mutex_lock(&callMutex);
     int res = pthread_cancel(dialServiceThread);
-    pthread_mutex_unlock(&callMutex);
+    // pthread_mutex_unlock(&callMutex);
 
     if (res != 0) {
         fprintf(
@@ -154,33 +154,32 @@ static void* getInput(void* ptr) {
         }
 
         // Run Event Handler method with completed dial input
-        pthread_mutex_lock(&callMutex);
+        // pthread_mutex_lock(&callMutex);
         memcpy(inputBuffer, localBuffer, sizeof(inputBuffer));
         dialEventHandler(inputBuffer);
-        pthread_mutex_unlock(&callMutex);
+        printf("DONE dialEventHandler!!\n");
+        // pthread_mutex_unlock(&callMutex);
     }
 
     pthread_exit(NULL);
 }
 static void startKeypadThread()
 {
-     //printf("inkeypad fcn\n");   
+     //printf("inkeypad fcn\n");
     int res = pthread_create(&dialServiceThread, NULL, getKeypadInput, NULL);
 
-    if (res != 0) 
+    if (res != 0)
     {
         fprintf(stderr, "DialService: spthread_create failed.\n");
         exit(1);
-    } 
+    }
 }
 
-static void* getKeypadInput(void* ptr)
-{   
+static void* getKeypadInput(void* ptr) {
     //printf("in keypad Thread\n");
     bool NameFound = false;
     Address dest;
-    while(!NameFound)
-    {
+    while (!NameFound) {
         char * ipAddr = KEYPAD_getDial();
 
         AddressLookupResult lookupResult = AddressBook_reverseLookup(ipAddr, &dest);
@@ -189,13 +188,14 @@ static void* getKeypadInput(void* ptr)
             LED_red_off();
             NameFound = true;
         } else {
-            printf("ip address not found.\n");
+            printf("DialService: IP address not found.\n");
             LED_red_on();
         }
     }
 
-    pthread_mutex_lock(&callMutex);
+    // pthread_mutex_lock(&callMutex);
     memcpy(inputBuffer, dest.name, sizeof(dest.name));
     dialEventHandler(inputBuffer);
-    pthread_mutex_unlock(&callMutex);
+    // pthread_mutex_unlock(&callMutex);
+    return NULL;
 }

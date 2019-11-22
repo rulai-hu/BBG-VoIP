@@ -306,23 +306,33 @@ EXCEPTION:
 }
 
 AudioResult Audio_stop() {
+    printf("Begin Audio_stop\n");
     if (!started) {
+        printf("Audio not started???\n");
         return AUDIO_ALREADY_STOPPED;
     }
 
     stopPlayback = true;
     stopRecording = true;
+    printf("1\n");
     pthread_join(fillPlaybackQueueThread, NULL);
+    sleep(1);
+    printf("2\n");
     pthread_join(flushRecordQueueThread, NULL);
+    printf("audio pthreads joined\n");
 
     PaError res = Pa_CloseStream(audioStream);
+
+    printf("pa_closestream\n");
 
     if (res != paNoError) {
         fprintf(stderr, "[WARN] Audio_stop: failed to close audio stream.\n");
         return AUDIO_CLOSE_STREAM_FAIL;
     }
 
+    printf("Clearing audio queues...\n");
     clearAllQueues();
+    printf("Done clearing audio queues\n");
 
 #ifdef DEBUG_AUDIO
     stopStats = true;
@@ -337,6 +347,7 @@ AudioResult Audio_stop() {
     started = false;
     callbackData = NULL;
 
+    printf("Audio_stop: AUDIO_OK\n");
     return AUDIO_OK;
 }
 
@@ -441,7 +452,7 @@ static void* fillPlaybackQueue(void* producer) {
 
         if (result == AUDIO_STOP) {
             printf("fillPlaybackQueue: break");
-            stopPlayback = true;
+            // stopPlayback = true;
             break;
         }
 
@@ -499,7 +510,7 @@ static void* flushRecordQueue(void* consumer) {
 
         if (result == AUDIO_STOP) {
             printf("flushRecordQueue: break\n");
-            stopRecording = true;
+            // stopRecording = true;
             break;
         }
     }
