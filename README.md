@@ -4,6 +4,11 @@ BeagleBone and ZenCape program which connects two devices over remote communicat
 
 ![Project image](readme-img/board.jpg)
 
+## README Notes
+
+Commands starting with `$` are meant to be run on the host.  
+Commands starting with `#` are meant to be run on the target.
+
 ## Detailed Overview
 
 This project uses [PortAudio](http://www.portaudio.com/) for recording sound and [Advanced Linux Sound Architecture (ALSA)](https://alsa-project.org/) for playing and managing sound through a wired USB headset.
@@ -49,9 +54,9 @@ Build the executable and send it to the BeagleBone through the NFS:
 $ make
 ```
 
-SSH into the BeagleBone and run the executable:
+Connect to the BeagleBone and run the executable:
 ```shell
-./tincanphone
+# ./tincanphone
 ```
 
 ## Schematic
@@ -76,21 +81,21 @@ SSH or screen into the target machine.
 
 Install library `libasound2-dev`:
 ```shell
-apt-get install libasound2-dev
+# apt-get install libasound2-dev
 ```
 
 Overwrite the ALSA config with the one provided in our repository (but not before making a copy first):
 ```shell
-cp /usr/share/alsa/alsa.conf /usr/share/alsa/alsa.conf.before-tincantelephones
-cp alsa.conf /usr/share/alsa/alsa.conf
+# cp /usr/share/alsa/alsa.conf /usr/share/alsa/alsa.conf.before-tincantelephones
+# cp alsa.conf /usr/share/alsa/alsa.conf
 ```
 
 Download, make and configure PortAudio **on the target**:
 ```shell
-cd /mnt/remote/
-wget http://portaudio.com/archives/pa_stable_v190600_20161030.tgz
-tar xvzf pa_stable_v190600_20161030.tgz
-./configure && make
+# cd /mnt/remote/
+# wget http://portaudio.com/archives/pa_stable_v190600_20161030.tgz
+# tar xvzf pa_stable_v190600_20161030.tgz
+# ./configure && make
 ```
 
 **Important**: Ensure that PortAudio is correctly configured by checking the configuration summary. You should see something like this:
@@ -128,9 +133,6 @@ The volume mixer is a standalone application that controls the volume of the PCM
 
  This section will walk through the steps to get the volume mixer running on the Beaglebone, but please note that the following assumptions are made: NFS drive has been configured to map to `~/cmpt433/myApps` on the host, and the audio cape and i2c pins have been properly configured.
 
-Lines starting with `$` are meant to be run on the host.  
-Lines starting with `#` are meant to be run on the target.
-
 The volume mixer application code can be found in its own directory within the project repository. Enter the project directory, and compile it:
 
 ```shell
@@ -155,7 +157,7 @@ The Volume Mixer has now been enabled via systemd, and will start on boot.
 ### Note: By default, the volume mixer attaches itself to control the audio output from the zen cape.
 To make it work for another device do the following:
 
-* Open the file `src/volume_mixer.c`
+* Open the file `src/volume_mixer.c`within the `volume_mixer` directory
 * Find the line `const char *selem_name = "PCM";` and change `PCM`to the name of your device (found with `alsamixer`)
 * Build and deploy with instructions above
 
