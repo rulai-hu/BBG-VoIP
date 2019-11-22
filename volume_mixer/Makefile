@@ -54,3 +54,4 @@ volume_mixer: $(OBJECTS)
 # Removes created files
 clean:
 	rm -f $(OUTPUT) *.o *~
+	rm -f $(OUTPUT_DIR)$(OUTPUT)
