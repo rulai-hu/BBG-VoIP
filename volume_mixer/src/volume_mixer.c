@@ -100,11 +100,6 @@ int readVoltageRawFromChannel(unsigned int channel) {
 
 void set_volume(long volume)
 {
-    // Ensure volume is reasonable; If so, cache it for later getVolume() calls.
-	if (volume < 0 || volume > 100) {
-		printf("ERROR: Volume must be between 0 and 100.\n");
-		return;
-	}
 
 	if (volume != currentVolume) {
         
