@@ -4,6 +4,11 @@ BeagleBone and ZenCape program which connects two devices over remote communicat
 
 ![Project image](readme-img/board.jpg)
 
+## README Notes
+
+Commands starting with `$` are meant to be run on the host.  
+Commands starting with `#` are meant to be run on the target.
+
 ## Detailed Overview
 
 This project uses [PortAudio](http://www.portaudio.com/) for recording sound and [Advanced Linux Sound Architecture (ALSA)](https://alsa-project.org/) for playing and managing sound through a wired USB headset.
@@ -32,6 +37,32 @@ $ mkdir -p ~/cmpt433/public/myApps/
 
 Mount a remote Network File Server (NFS) from the BeagleBone to the directory above.
 
+### Networking
+
+For your BeagleBone to communicate with other BeagleBones over ethernet, the IP address of `eth0` must be set.
+
+This can be done with
+
+```
+# sudo ip ad add 10.0.0.0/24 dev eth0
+```
+Replacing `10.0.0.0` with the IP address you want to be identified as.
+
+However, this IP address will not persist once the board is rebooted. To have a persistent IP do the following:
+
+* Add the following lines to the end of `/etc/network/interfaces` on the BeagleBone (replacing `10.0.0.0` with the IP address yu want to be identified as):
+```shell
+auto eth0
+iface eth0 inet static
+  address 10.0.0.0
+  netmask 255.255.255.0
+  broadcast 0.0.0.0 
+```
+* Either reboot the board, or restart your networking service with:
+```
+# sudo /etc/init.d/networking restart
+```
+* Now, the IP address should persist through reboots
 ### The Program
 
 Clone the GitHub repository:
@@ -49,9 +80,9 @@ Build the executable and send it to the BeagleBone through the NFS:
 $ make
 ```
 
-SSH into the BeagleBone and run the executable:
-```shell
-./tincanphone
+Connect to the BeagleBone and run the executable:
+```
+# ./tincanphone
 ```
 
 ## Schematic
@@ -76,21 +107,21 @@ SSH or screen into the target machine.
 
 Install library `libasound2-dev`:
 ```shell
-apt-get install libasound2-dev
+# apt-get install libasound2-dev
 ```
 
 Overwrite the ALSA config with the one provided in our repository (but not before making a copy first):
 ```shell
-cp /usr/share/alsa/alsa.conf /usr/share/alsa/alsa.conf.before-tincantelephones
-cp alsa.conf /usr/share/alsa/alsa.conf
+# cp /usr/share/alsa/alsa.conf /usr/share/alsa/alsa.conf.before-tincantelephones
+# cp alsa.conf /usr/share/alsa/alsa.conf
 ```
 
 Download, make and configure PortAudio **on the target**:
 ```shell
-cd /mnt/remote/
-wget http://portaudio.com/archives/pa_stable_v190600_20161030.tgz
-tar xvzf pa_stable_v190600_20161030.tgz
-./configure && make
+# cd /mnt/remote/
+# wget http://portaudio.com/archives/pa_stable_v190600_20161030.tgz
+# tar xvzf pa_stable_v190600_20161030.tgz
+# ./configure && make
 ```
 
 **Important**: Ensure that PortAudio is correctly configured by checking the configuration summary. You should see something like this:
@@ -124,14 +155,11 @@ Are you experiencing:
 
 ## Volume Mixer Service
 
-The volume mixer is a standalone application that controls the volume of the PCM channel of the board with the potentiometer on the Zen Cape, and displays the current volume of the board on the 14-seg display. The steps to get the volume mixer running on the BeagleBone are as follows:
+The volume mixer is a standalone application that controls the volume of the PCM channel of the board with the potentiometer on the Zen Cape, and displays the current volume of the board on the 14-seg display.
 
-The following assumptions are made: NFS drive has been configured to map to `~/cmpt433/myApps` on the host, and the audio cape and i2c pins have been properly configured.
+ This section will walk through the steps to get the volume mixer running on the Beaglebone, but please note that the following assumptions are made: NFS drive has been configured to map to `~/cmpt433/myApps` on the host, and the audio cape and i2c pins have been properly configured.
 
-Lines starting with `$` are meant to be run on the host.  
-Lines starting with `#` are meant to be run on the target.
-
-Enter the project directory, and compile it:
+The volume mixer application code can be found in its own directory within the project repository. Enter the project directory, and compile it:
 
 ```shell
 $ cd cmpt-433-project/volume_mixer
@@ -140,19 +168,26 @@ $ make
 
 After compiling the application, the make command will copy it to the target via the NFS folder along with the `volume_mixer.service` file.
 
-Now, we can configure the application on the target. First, connect to the target via ssh or screen, and mount the NFS drive then do the following:
+Now, we can configure the application on the target. First, connect to the target via ssh or screen, and mount the NFS drive then do the following (all commands must be run with `sudo`):
 
 ```
-# sudo mkdir /opt/10-VolumeMixer/
-# sudo cp /mnt/remote/myApps/volume_mixer /opt/10-VolumeMixer/
-# sudo cp volume_mixer.service /lib/systemd/system/
-# sudo systemctl enable volume_mixer.service
-# sudo systemctl start volume_mixer.service
+# mkdir /opt/10-VolumeMixer/
+# cp /mnt/remote/myApps/volume_mixer /opt/10-VolumeMixer/
+# cp volume_mixer.service /lib/systemd/system/
+# systemctl enable volume_mixer.service
+# systemctl start volume_mixer.service
 ```
 
 The Volume Mixer has now been enabled via systemd, and will start on boot.
 
 ### Note: By default, the volume mixer attaches itself to control the audio output from the zen cape.
+To make it work for another device do the following:
+
+* Open the file `src/volume_mixer.c`within the `volume_mixer` directory
+* Find the line `const char *selem_name = "PCM";` and change `PCM`to the name of your device (found with `alsamixer`)
+* Build and deploy with instructions above
+
+
 
 ## System Overview
 
