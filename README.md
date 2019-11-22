@@ -153,6 +153,13 @@ Now, we can configure the application on the target. First, connect to the targe
 The Volume Mixer has now been enabled via systemd, and will start on boot.
 
 ### Note: By default, the volume mixer attaches itself to control the audio output from the zen cape.
+To make it work for another device do the following:
+
+* Open the file `src/volume_mixer.c`
+* Find the line `const char *selem_name = "PCM";` and change `PCM`to the name of your device (found with `alsamixer`)
+* Build and deploy with instructions above
+
+
 
 ## System Overview
 
