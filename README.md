@@ -152,6 +152,8 @@ Now, we can configure the application on the target. First, connect to the targe
 
 The Volume Mixer has now been enabled via systemd, and will start on boot.
 
+### Note: By default, the volume mixer attaches itself to control the audio output from the zen cape.
+
 ## System Overview
 
 See a map of the system here:
