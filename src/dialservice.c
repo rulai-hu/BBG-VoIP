@@ -169,7 +169,7 @@ static void startKeypadThread()
 
     if (res != 0) 
     {
-        fprintf(stderr, "DialService: pthread_create failed.\n");
+        fprintf(stderr, "DialService: spthread_create failed.\n");
         exit(1);
     } 
 }

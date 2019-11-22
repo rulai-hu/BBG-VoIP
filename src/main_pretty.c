@@ -27,6 +27,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    printf("hello Bryce \n");
     int inputDeviceIndex = atoi(argv[1]);
     int outputDeviceIndex = atoi(argv[2]);
 
@@ -43,8 +44,9 @@ int main(int argc, char* argv[]) {
 
     LED_init();
     AddressBook_init();
-    VoiceServer_start(handleIncomingCall);
     DialService_start(onDial);
+    VoiceServer_start(handleIncomingCall);
+    
 
     // Wait for SIGINT to arrive.
     sigwait(&signalSet, &signalNumber);
