@@ -40,6 +40,8 @@ void DialService_start(DialEventHandler callback) {
             startKeypadThread();
             break;
         } else if (ch == 'n' || ch == 'N') {
+            int ch;
+            while ((ch = fgetc(stdin)) != EOF && ch != '\n') {}
             startThread();
             break;
         } 
@@ -112,7 +114,7 @@ void DialService_stop() {
 }
 
 static void startThread() {
-    nanosleep((const struct timespec[]){{0, SECOND_NS/10L}}, NULL);
+
     int res = pthread_create(&dialServiceThread, NULL, getInput, NULL);
 
     if (res != 0) {
