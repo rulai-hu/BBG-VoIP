@@ -37,6 +37,17 @@ $ mkdir -p ~/cmpt433/public/myApps/
 
 Mount a remote Network File Server (NFS) from the BeagleBone to the directory above.
 
+### Networking
+
+For your BeagleBone to communicate with other BeagleBones over ethernet, the IP address of `eth0` must be set.
+
+This can be done with
+
+```shell
+sudo ip ad add 10.0.0.0/24 dev eth0
+```
+Replacing `10.0.0.0` with the IP address you want to be identified as.
+
 ### The Program
 
 Clone the GitHub repository:
