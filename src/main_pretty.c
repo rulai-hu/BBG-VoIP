@@ -18,8 +18,8 @@
 #include "include/connection.h"
 #include "include/audio.h"
 #include "include/call.h"
-#include "../include/keypad.h"
-#include "../include/led.h"
+#include "include/keypad.h"
+#include "include/led.h"
 
 static void onDial(const char*);
 static void handleIncomingCall(Address*, Connection*);
@@ -47,16 +47,16 @@ int main(int argc, char* argv[]) {
 
     LED_init();
     AddressBook_init();
-    VoiceServer_start(handleIncomingCall);
     DialService_start(onDial);
+    VoiceServer_start(handleIncomingCall);
 
     // Wait for SIGINT to arrive.
     sigwait(&signalSet, &signalNumber);
 
     printf("\nSIGINT received by main thread. Stopping program...\n");
 
-    DialService_stop();
     VoiceServer_stop();
+    DialService_stop();
     printf("Audio_stop TEARDOWN\n");
     Audio_stop();
     Audio_teardown();
