@@ -104,6 +104,8 @@ static void* acceptConnections(void* ptr) {
 
         // printf("VoiceServer: Handling incoming call...\n");
         handleIncomingCall(&callerAddr, &connection);
+
+        printf("DONE handleIncomingCall!!\n");
     }
 
     return NULL;

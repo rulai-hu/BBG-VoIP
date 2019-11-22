@@ -65,6 +65,7 @@ CallResult Call_begin(Connection* conn) {
 
 void Call_terminate(Connection* conn) {
     shutdown(conn->socket, SHUT_RDWR);
+    printf("Done TCP socket shutdown.\n");
     // printf("Joining thread=%lu\n", conn->thread);
     // pthread_cancel(conn->thread);
     // pthread_join(conn->thread, NULL);
@@ -146,7 +147,7 @@ static void* beginCall(void* ptr) {
         exit(1);
     }
 
-    // printf("Poll finished. Exiting callThread.\n");
+    printf("\nPoll finished. Exiting callThread.\n");
     // printf("No more bytes to read, call over.\n");
 
     pthread_exit(NULL);
@@ -162,7 +163,7 @@ static AudioCallbackResult sendDatagram(FrameBuffer buffer, const size_t bufferS
     // send() can send out partial frames.
     while (bytesSent < bufferSize) {
         if (bytesSent < 0) {
-            printf("send: AUDIO_STOP\n");
+            // printf("send: AUDIO_STOP\n");
             // shutdown(connection->socket, SHUT_RDWR);
             // setError(errno);
             return AUDIO_STOP;
@@ -185,7 +186,7 @@ static AudioCallbackResult receiveDatagram(FrameBuffer buffer, const size_t buff
 
     while (totalBytesReceived < bufferSize) {
         if (bytesReceived <= 0) {
-            printf("recv: AUDIO_STOP\n");
+            // printf("recv: AUDIO_STOP\n");
             return AUDIO_STOP;
         }
 
