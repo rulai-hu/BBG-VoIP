@@ -1,16 +1,15 @@
-# Zen Cape UART Guide – Kernel 4.9+
-by Jeffrey Leung, Rulai Hu, Bryce Haley, Paymon Jalali
+# BeagleBone Green UART Guide (PARTIAL) – Kernel 4.9+
 
 ___
 
-_Last update:_ November 5, 2019
+_Last update:_ November 27, 2019
 
 _Version note:_ This guide targets boards which have the cape management built into UBoot, not the Linux Cape Manager (which is now removed).
 
-This document guides the user through:
+This partially complete document guides the user through:
 1. Enabling the UART serial port on the BeagleBone Green.
-2. Connecting two BeagleBone greens through their serial ports.
-3. Communication between the two BeagleBones through serial.
+2. [NOT COMPLETE] Connecting two BeagleBone greens through their serial ports.
+3. [NOT COMPLETE] Communication between the two BeagleBones through serial.
 
 _Formatting:_
 1. Host (desktop) commands starting with `$` are Linux console commands:
@@ -105,7 +104,7 @@ to use the appropriate UART port:
 uboot_overlay_addr6=/lib/firmware/BB-UART2-00A0.dtbo
 ```
 
-Ensure you removed the # on the first two lines to un-comment them!
+Ensure you removed the # on the first two lines of the uEnv to un-comment them!
 
 4. Reboot the target.
 
@@ -114,3 +113,7 @@ Ensure you removed the # on the first two lines to un-comment them!
 ```shell
 # ls -ltr /dev/ttyO2
 ```
+
+___
+
+This is as far as we got; take a look at the serial port pins and start using the GPIO to interact with them!
